@@ -1,6 +1,6 @@
 # CenterPoint From Scratch
 
-An educational, from-scratch reimplementation of **CenterPoint**, a center-based
+An educational, from-scratch reimplementation of [**CenterPoint**](https://arxiv.org/abs/2006.11275), a center-based
 3D object detector and tracker for autonomous driving.
 
 This repository has three goals:
