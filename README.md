@@ -24,6 +24,11 @@ This project aims to make those details inspectable. The implementation will fav
 well-tested components, while the notebooks will connect equations and diagrams to executable
 code.
 
+This project is part of a from-scratch 3D perception reimplementation series. See also
+[DETR3D in Pure PyTorch](https://github.com/bskkimm/DETR3D-Implementation-using-Pytorch),
+which follows the same emphasis on framework-independent implementation, reproducible results,
+and executable architecture explanations.
+
 ## CenterPoint at a Glance
 
 CenterPoint represents each 3D object by the center of its bounding box. The detector predicts
@@ -105,16 +110,18 @@ the full evaluation artifacts are available.
 - **Reproducible:** Experiments are configuration-driven and preserve all relevant metadata.
 - **Educational:** Notebooks explain why an operation exists, not only how to call it.
 
-## Planned Repository Layout
+## Repository Layout
 
 ```text
 .
 |-- centerpoint/          # Model, data, geometry, loss, and evaluation code
 |-- configs/              # Dataset and experiment configurations
+|-- docs/analysis/        # Design decisions and experiment diagnoses
 |-- notebooks/            # Architecture explanations and executable walkthroughs
 |-- scripts/              # Training, evaluation, and data preparation entry points
 |-- tests/                # Unit and integration tests
 |-- results/              # Reproduction tables and experiment summaries
+|-- pyproject.toml        # Python package metadata
 `-- README.md
 ```
 
@@ -123,7 +130,8 @@ available, so that all documented commands can be verified before publication.
 
 ## Roadmap
 
-- [ ] Establish the package structure and development environment
+- [x] Establish the initial package structure
+- [ ] Define and lock the development environment
 - [ ] Implement point-cloud loading, augmentation, and voxelization
 - [ ] Implement the voxel encoder and sparse 3D backbone
 - [ ] Implement the BEV backbone and CenterHead

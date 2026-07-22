@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Environments and editors
+.venv/
+venv/
+.env
+.idea/
+.vscode/
+*.swp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data and generated experiment artifacts
+/data/
+/datasets/
+/checkpoints/
+/logs/
+/outputs/
+/mlruns/
+/wandb/
+*.pth
+*.pt
+*.ckpt
