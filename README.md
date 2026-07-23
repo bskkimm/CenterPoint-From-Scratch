@@ -146,6 +146,8 @@ available, so that all documented commands can be verified before publication.
 
 - Tianwei Yin, Xingyi Zhou, and Philipp Krahenbuhl. [Center-based 3D Object Detection and Tracking](https://arxiv.org/abs/2006.11275), CVPR 2021.
 - [Official CenterPoint repository](https://github.com/tianweiy/CenterPoint)
+- [Minimal implementation materials](docs/MATERIALS.md) for official dataset guides,
+  canonical configurations, and evaluation references
 
 If this project supports your work, please cite the original CenterPoint paper:
 
