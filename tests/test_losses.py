@@ -74,6 +74,27 @@ def test_regression_loss_is_zero_without_objects():
     torch.testing.assert_allclose(loss, torch.zeros(2))
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="float16 loss kernels require CUDA")
+def test_loss_masks_promote_reduced_precision_predictions_to_float32():
+    device = torch.device("cuda")
+    focal = FastFocalLoss()(
+        torch.full((1, 1, 1, 1), 0.5, dtype=torch.float16, device=device),
+        torch.zeros((1, 1, 1, 1), dtype=torch.float16, device=device),
+        torch.zeros((1, 1), dtype=torch.long, device=device),
+        torch.ones((1, 1), dtype=torch.uint8, device=device),
+        torch.zeros((1, 1), dtype=torch.long, device=device),
+    )
+    regression = RegressionLoss()(
+        torch.ones((1, 1, 1, 1), dtype=torch.float16, device=device),
+        torch.ones((1, 1), dtype=torch.uint8, device=device),
+        torch.zeros((1, 1), dtype=torch.long, device=device),
+        torch.zeros((1, 1, 1), dtype=torch.float16, device=device),
+    )
+
+    assert focal.dtype == torch.float32
+    assert regression.dtype == torch.float32
+
+
 def test_losses_reject_incompatible_shapes():
     with pytest.raises(ValueError, match="prediction and target"):
         FastFocalLoss()(

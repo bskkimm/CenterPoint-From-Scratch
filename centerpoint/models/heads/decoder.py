@@ -44,6 +44,7 @@ class CenterPointDecoder:
             else None
         )
 
+    @torch.no_grad()
     def __call__(
         self,
         predictions: Mapping[str, Tensor],

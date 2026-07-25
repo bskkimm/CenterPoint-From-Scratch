@@ -72,6 +72,16 @@ def test_decoder_supports_velocity_free_heads():
     torch.testing.assert_allclose(result.boxes[:, -1], torch.tensor([0.0, math.pi / 2]))
 
 
+def test_decoder_disables_autograd_like_official_predict():
+    predictions = make_predictions()
+    predictions = {name: value.requires_grad_() for name, value in predictions.items()}
+
+    result = CenterPointDecoder((1, 1, 1), (0, 0, -5, 4, 4, 5), 1)(predictions)[0]
+
+    assert not result.boxes.requires_grad
+    assert not result.scores.requires_grad
+
+
 def test_decoder_validates_head_shapes():
     predictions = make_predictions()
     predictions["reg"] = torch.zeros((1, 3, 1, 2))

@@ -31,6 +31,7 @@ class FastFocalLoss(nn.Module):
         if indices.shape != mask.shape or indices.shape != categories.shape:
             raise ValueError("indices, mask, and categories must have equal [B, M] shapes")
 
+        mask = mask.float()
         negative_weights = torch.pow(1 - target, 4)
         negative_loss = (
             torch.log(1 - prediction) * torch.pow(prediction, 2) * negative_weights
@@ -41,10 +42,10 @@ class FastFocalLoss(nn.Module):
         positive_loss = (
             torch.log(positive_prediction)
             * torch.pow(1 - positive_prediction, 2)
-            * mask.to(prediction.dtype)
+            * mask
         ).sum()
 
-        positive_count = mask.to(prediction.dtype).sum()
+        positive_count = mask.sum()
         if positive_count.item() == 0:
             return -negative_loss
         return -(positive_loss + negative_loss) / positive_count
@@ -70,7 +71,7 @@ class RegressionLoss(nn.Module):
             raise ValueError("target must have shape [B, M, C]")
 
         gathered = transpose_and_gather_feature(prediction, indices)
-        expanded_mask = mask.unsqueeze(2).to(prediction.dtype)
+        expanded_mask = mask.float().unsqueeze(2)
         loss = F.l1_loss(
             gathered * expanded_mask,
             target * expanded_mask,
