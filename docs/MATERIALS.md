@@ -4,6 +4,8 @@ These are the minimum primary sources for implementing CenterPoint and reproduci
 nuScenes and Waymo workflows. Use the paper for intent, the official code and configs for exact
 behavior, and the dataset devkits for evaluation contracts.
 
+The first repository target is fixed separately in [the reproduction baseline](BASELINE.md).
+
 ## Core Model
 
 | Material | Use |
