@@ -10,6 +10,7 @@ the pinned official files rather than reimplementing them here.
 
 import argparse
 import ast
+from collections import defaultdict
 import importlib.util
 import json
 import subprocess
@@ -107,6 +108,37 @@ def load_assign_label(root, center_utils):
     return namespace["AssignLabel"]
 
 
+def load_box_geometry(root):
+    source_path = root / "det3d/core/bbox/box_np_ops.py"
+    tree = ast.parse(source_path.read_text())
+    names = {"corners_nd", "rotation_3d_in_axis", "center_to_corner_box3d"}
+    selected = [
+        node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in names
+    ]
+    namespace = {"np": np}
+    exec(compile(ast.Module(body=selected, type_ignores=[]), str(source_path), "exec"), namespace)
+    return namespace["center_to_corner_box3d"]
+
+
+def load_official_predict(root):
+    source_path = root / "det3d/models/bbox_heads/center_head.py"
+    tree = ast.parse(source_path.read_text())
+    center_head = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "CenterHead"
+    )
+    predict = next(
+        node
+        for node in center_head.body
+        if isinstance(node, ast.FunctionDef) and node.name == "predict"
+    )
+    namespace = {"defaultdict": defaultdict, "torch": torch}
+    exec(
+        compile(ast.Module(body=[predict], type_ignores=[]), str(source_path), "exec"),
+        namespace,
+    )
+    return namespace["predict"]
+
+
 def tensor_list(value):
     return value.detach().cpu().tolist()
 
@@ -117,6 +149,11 @@ def generate(root):
     ).strip()
     if commit != OFFICIAL_COMMIT:
         raise RuntimeError(f"expected {OFFICIAL_COMMIT}, found {commit}")
+    dirty = subprocess.check_output(
+        ["git", "status", "--porcelain"], cwd=root, text=True
+    ).strip()
+    if dirty:
+        raise RuntimeError("official checkout must have a clean working tree")
 
     center_utils = load_center_utils(root)
     loss_module = load_losses(root, center_utils)
@@ -126,6 +163,8 @@ def generate(root):
     )
     reader_module = load_voxel_encoder(root)
     assign_label = load_assign_label(root, center_utils)
+    center_to_corner_box3d = load_box_geometry(root)
+    official_predict = load_official_predict(root)
 
     heatmap = np.zeros((5, 5), dtype=np.float32)
     center_utils.draw_umich_gaussian(heatmap, np.array([0.0, 2.0]), 1)
@@ -204,6 +243,61 @@ def generate(root):
     )
     target = result["lidar"]["targets"]
 
+    corners = center_to_corner_box3d(
+        np.array([[10.0, 20.0, 30.0]], dtype=np.float32),
+        np.array([[2.0, 4.0, 6.0]], dtype=np.float32),
+        np.array([np.pi / 2], dtype=np.float32),
+    )
+
+    class CaptureDecoder:
+        num_classes = [2]
+
+        @staticmethod
+        def post_processing(batch_boxes, batch_heatmap, *_args):
+            outputs = []
+            for boxes_for_sample, heatmap_for_sample in zip(batch_boxes, batch_heatmap):
+                scores, labels = torch.max(heatmap_for_sample, dim=-1)
+                outputs.append(
+                    {
+                        "box3d_lidar": boxes_for_sample,
+                        "scores": scores,
+                        "label_preds": labels,
+                    }
+                )
+            return outputs
+
+    CaptureDecoder.predict = official_predict
+    decoder_predictions = {
+        "hm": torch.tensor([[[[0.0, 1.0]], [[2.0, -1.0]]]]),
+        "reg": torch.tensor([[[[0.25, 0.5]], [[0.75, 0.0]]]]),
+        "height": torch.tensor([[[[1.5, -2.0]]]]),
+        "dim": torch.tensor(
+            [
+                [
+                    [[np.log(2.0), np.log(3.0)]],
+                    [[np.log(4.0), np.log(5.0)]],
+                    [[np.log(6.0), np.log(7.0)]],
+                ]
+            ],
+            dtype=torch.float32,
+        ),
+        "vel": torch.tensor([[[[8.0, 9.0]], [[10.0, 11.0]]]]),
+        "rot": torch.tensor([[[[0.0, 1.0]], [[1.0, 0.0]]]]),
+    }
+    decoded = CaptureDecoder().predict(
+        {"metadata": []},
+        [decoder_predictions],
+        AttrDict(
+            double_flip=False,
+            post_center_limit_range=[-100, -100, -100, 100, 100, 100],
+            out_size_factor=2,
+            voxel_size=[0.5, 1.0],
+            pc_range=[-10.0, -20.0],
+            score_threshold=0.0,
+            per_class_nms=False,
+        ),
+    )[0]
+
     return {
         "metadata": {
             "official_commit": commit,
@@ -213,8 +307,11 @@ def generate(root):
                 "det3d/models/readers/voxel_encoder.py",
                 "det3d/models/losses/centernet_loss.py",
                 "det3d/datasets/pipelines/preprocess.py:AssignLabel",
+                "det3d/core/bbox/box_np_ops.py:center_to_corner_box3d",
+                "det3d/models/bbox_heads/center_head.py:CenterHead.predict",
             ],
         },
+        "geometry": {"corners": corners.tolist()},
         "gaussian": {
             "radius": float(center_utils.gaussian_radius((2.5, 1.25), 0.1)),
             "heatmap": heatmap.tolist(),
@@ -235,6 +332,11 @@ def generate(root):
             "indices": target["ind"][0].tolist(),
             "mask": target["mask"][0].tolist(),
             "categories": target["cat"][0].tolist(),
+        },
+        "decoder": {
+            "boxes": tensor_list(decoded["box3d_lidar"]),
+            "scores": tensor_list(decoded["scores"]),
+            "labels": tensor_list(decoded["label_preds"]),
         },
     }
 

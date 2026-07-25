@@ -5,9 +5,11 @@ from pathlib import Path
 import torch
 
 from centerpoint.data import CenterTargetAssigner, HardVoxelizer
+from centerpoint.models.heads import CenterPointDecoder
 from centerpoint.models.losses import FastFocalLoss, RegressionLoss
 from centerpoint.models.readers import MeanVoxelFeatureEncoder
 from centerpoint.utils.heatmap import draw_gaussian, gaussian_radius
+from centerpoint.utils.geometry import boxes_to_corners_3d
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "official_3cf7d870.json"
@@ -22,7 +24,19 @@ def test_fixture_is_tied_to_frozen_official_commit():
     fixture = load_fixture()
 
     assert fixture["metadata"]["official_commit"] == OFFICIAL_COMMIT
-    assert len(fixture["metadata"]["sources"]) == 5
+    assert len(fixture["metadata"]["sources"]) == 7
+
+
+def test_box_corners_match_official_golden_output():
+    fixture = load_fixture()["geometry"]
+
+    corners = boxes_to_corners_3d(
+        torch.tensor([[10.0, 20.0, 30.0]]),
+        torch.tensor([[2.0, 4.0, 6.0]]),
+        torch.tensor([math.pi / 2]),
+    )
+
+    torch.testing.assert_allclose(corners, torch.tensor(fixture["corners"]))
 
 
 def test_heatmap_utilities_match_official_golden_output():
@@ -109,4 +123,36 @@ def test_target_assignment_matches_official_golden_output():
     torch.testing.assert_allclose(target.mask, torch.tensor(fixture["mask"], dtype=torch.uint8))
     torch.testing.assert_allclose(
         target.categories, torch.tensor(fixture["categories"], dtype=torch.int64)
+    )
+
+
+def test_dense_decoder_matches_official_golden_output():
+    fixture = load_fixture()["decoder"]
+    predictions = {
+        "hm": torch.tensor([[[[0.0, 1.0]], [[2.0, -1.0]]]]),
+        "reg": torch.tensor([[[[0.25, 0.5]], [[0.75, 0.0]]]]),
+        "height": torch.tensor([[[[1.5, -2.0]]]]),
+        "dim": torch.tensor(
+            [
+                [
+                    [[math.log(2.0), math.log(3.0)]],
+                    [[math.log(4.0), math.log(5.0)]],
+                    [[math.log(6.0), math.log(7.0)]],
+                ]
+            ],
+            dtype=torch.float32,
+        ),
+        "vel": torch.tensor([[[[8.0, 9.0]], [[10.0, 11.0]]]]),
+        "rot": torch.tensor([[[[0.0, 1.0]], [[1.0, 0.0]]]]),
+    }
+    decoded = CenterPointDecoder(
+        voxel_size=(0.5, 1.0, 0.2),
+        point_cloud_range=(-10.0, -20.0, -5.0, 10.0, 20.0, 3.0),
+        output_stride=2,
+    )(predictions)[0]
+
+    torch.testing.assert_allclose(decoded.boxes, torch.tensor(fixture["boxes"]))
+    torch.testing.assert_allclose(decoded.scores, torch.tensor(fixture["scores"]))
+    torch.testing.assert_allclose(
+        decoded.labels, torch.tensor(fixture["labels"], dtype=torch.int64)
     )

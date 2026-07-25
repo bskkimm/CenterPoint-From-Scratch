@@ -1,4 +1,12 @@
 {
+  "decoder": {
+    "boxes": [
+      [-9.75, -18.5, 1.5, 2.0, 4.0, 6.0, 8.0, 10.0, 0.0],
+      [-8.5, -20.0, -2.0, 3.0, 5.0, 6.999999523162842, 9.0, 11.0, 1.5707963705062866]
+    ],
+    "labels": [1, 0],
+    "scores": [0.8807970285415649, 0.7310585975646973]
+  },
   "gaussian": {
     "heatmap": [
       [0.0, 0.0, 0.0, 0.0, 0.0],
@@ -8,6 +16,20 @@
       [0.0, 0.0, 0.0, 0.0, 0.0]
     ],
     "radius": 0.75
+  },
+  "geometry": {
+    "corners": [
+      [
+        [8.0, 21.0, 27.0],
+        [8.0, 21.0, 33.0],
+        [12.0, 21.0, 33.0],
+        [12.0, 21.0, 27.0],
+        [8.0, 19.0, 27.0],
+        [8.0, 19.0, 33.0],
+        [12.0, 19.0, 33.0],
+        [12.0, 19.0, 27.0]
+      ]
+    ]
   },
   "losses": {
     "focal": 0.047188349068164825,
@@ -20,7 +42,9 @@
       "det3d/ops/point_cloud/point_cloud_ops.py",
       "det3d/models/readers/voxel_encoder.py",
       "det3d/models/losses/centernet_loss.py",
-      "det3d/datasets/pipelines/preprocess.py:AssignLabel"
+      "det3d/datasets/pipelines/preprocess.py:AssignLabel",
+      "det3d/core/bbox/box_np_ops.py:center_to_corner_box3d",
+      "det3d/models/bbox_heads/center_head.py:CenterHead.predict"
     ]
   },
   "target": {
