@@ -110,6 +110,13 @@ the full evaluation artifacts are available.
 - **Reproducible:** Experiments are configuration-driven and preserve all relevant metadata.
 - **Educational:** Notebooks explain why an operation exists, not only how to call it.
 
+Project contracts and plans:
+
+- [Frozen reproduction baseline](docs/BASELINE.md)
+- [Tensor and coordinate contracts](docs/CONTRACTS.md)
+- [Pinned upstream source map](docs/UPSTREAM_MAP.md)
+- [Evidence-gated next steps](docs/NEXT_STEPS.md)
+
 ## Repository Layout
 
 ```text
@@ -129,6 +136,9 @@ The installation and execution instructions will be added when the first runnabl
 available, so that all documented commands can be verified before publication.
 
 ## Roadmap
+
+See the [evidence-gated implementation plan](docs/NEXT_STEPS.md) for detailed deliverables and
+merge criteria.
 
 - [x] Establish the initial package structure
 - [ ] Define and lock the development environment
