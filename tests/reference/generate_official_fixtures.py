@@ -139,6 +139,131 @@ def load_official_predict(root):
     return namespace["predict"]
 
 
+def load_official_config(root):
+    source_path = (
+        root
+        / "configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py"
+    )
+    tree = ast.parse(source_path.read_text())
+    body = [node for node in tree.body if not isinstance(node, (ast.Import, ast.ImportFrom))]
+
+    namespace = {
+        "__file__": str(source_path),
+        "get_downsample_factor": load_get_downsample_factor(root),
+        "itertools": __import__("itertools"),
+        "logging": __import__("logging"),
+    }
+    exec(compile(ast.Module(body=body, type_ignores=[]), str(source_path), "exec"), namespace)
+    return namespace
+
+
+def load_get_downsample_factor(root):
+    source_path = root / "det3d/utils/config_tool.py"
+    tree = ast.parse(source_path.read_text())
+    function = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "get_downsample_factor"
+    )
+    namespace = {"np": np}
+    exec(
+        compile(ast.Module(body=[function], type_ignores=[]), str(source_path), "exec"),
+        namespace,
+    )
+    return namespace["get_downsample_factor"]
+
+
+def official_config_manifest(config):
+    model = config["model"]
+    neck = model["neck"]
+    head = model["bbox_head"]
+    target = config["assigner"]
+    voxel = config["voxel_generator"]
+    test = config["test_cfg"]
+    nms = test["nms"]
+    augmentation = config["train_preprocessor"]
+    optimizer = config["optimizer"]
+    schedule = config["lr_config"]
+    return {
+        "dataset": config["dataset_type"],
+        "num_sweeps": config["nsweeps"],
+        "tasks": [task["class_names"] for task in config["tasks"]],
+        "voxel": {
+            "point_cloud_range": voxel["range"],
+            "size": voxel["voxel_size"],
+            "max_points": voxel["max_points_in_voxel"],
+            "max_voxels": voxel["max_voxel_num"],
+        },
+        "target": {
+            "output_stride": target["out_size_factor"],
+            "gaussian_overlap": target["gaussian_overlap"],
+            "max_objects": target["max_objs"],
+            "min_radius": target["min_radius"],
+        },
+        "model": {
+            "reader": model["reader"]["type"],
+            "num_input_features": model["reader"]["num_input_features"],
+            "backbone": model["backbone"]["type"],
+            "backbone_downsample_factor": model["backbone"]["ds_factor"],
+            "neck": {
+                "layer_numbers": neck["layer_nums"],
+                "downsample_strides": neck["ds_layer_strides"],
+                "downsample_filters": neck["ds_num_filters"],
+                "upsample_strides": neck["us_layer_strides"],
+                "upsample_filters": neck["us_num_filters"],
+                "input_channels": neck["num_input_features"],
+            },
+            "head": {
+                "input_channels": head["in_channels"],
+                "shared_channels": head["share_conv_channel"],
+                "branches": {name: list(value) for name, value in head["common_heads"].items()},
+                "loss_weight": head["weight"],
+                "code_weights": head["code_weights"],
+                "use_dcn": head["dcn_head"],
+            },
+        },
+        "augmentation": {
+            "shuffle_points": augmentation["shuffle_points"],
+            "rotation_range": augmentation["global_rot_noise"],
+            "scale_range": augmentation["global_scale_noise"],
+            "translation_std": augmentation["global_translate_std"],
+            "database_sampling_enabled": config["db_sampler"]["enable"],
+        },
+        "inference": {
+            "post_center_range": test["post_center_limit_range"],
+            "max_per_image": test["max_per_img"],
+            "score_threshold": test["score_threshold"],
+            "output_stride": test["out_size_factor"],
+            "voxel_size_xy": test["voxel_size"],
+            "point_cloud_min_xy": test["pc_range"],
+            "nms": {
+                "rotated": nms["use_rotate_nms"],
+                "multi_class": nms["use_multi_class_nms"],
+                "pre_max_size": nms["nms_pre_max_size"],
+                "post_max_size": nms["nms_post_max_size"],
+                "iou_threshold": nms["nms_iou_threshold"],
+            },
+        },
+        "training": {
+            "samples_per_gpu": config["data"]["samples_per_gpu"],
+            "workers_per_gpu": config["data"]["workers_per_gpu"],
+            "optimizer": optimizer["type"],
+            "amsgrad": bool(optimizer["amsgrad"]),
+            "weight_decay": optimizer["wd"],
+            "fixed_weight_decay": optimizer["fixed_wd"],
+            "moving_average": optimizer["moving_average"],
+            "max_gradient_norm": config["optimizer_config"]["grad_clip"]["max_norm"],
+            "gradient_norm_type": config["optimizer_config"]["grad_clip"]["norm_type"],
+            "schedule": schedule["type"],
+            "max_learning_rate": schedule["lr_max"],
+            "momentums": schedule["moms"],
+            "division_factor": schedule["div_factor"],
+            "warmup_fraction": schedule["pct_start"],
+            "epochs": config["total_epochs"],
+        },
+    }
+
+
 def tensor_list(value):
     return value.detach().cpu().tolist()
 
@@ -165,6 +290,7 @@ def generate(root):
     assign_label = load_assign_label(root, center_utils)
     center_to_corner_box3d = load_box_geometry(root)
     official_predict = load_official_predict(root)
+    official_config = load_official_config(root)
 
     heatmap = np.zeros((5, 5), dtype=np.float32)
     center_utils.draw_umich_gaussian(heatmap, np.array([0.0, 2.0]), 1)
@@ -299,6 +425,7 @@ def generate(root):
     )[0]
 
     return {
+        "config": official_config_manifest(official_config),
         "metadata": {
             "official_commit": commit,
             "sources": [
@@ -309,6 +436,8 @@ def generate(root):
                 "det3d/datasets/pipelines/preprocess.py:AssignLabel",
                 "det3d/core/bbox/box_np_ops.py:center_to_corner_box3d",
                 "det3d/models/bbox_heads/center_head.py:CenterHead.predict",
+                "configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py",
+                "det3d/utils/config_tool.py:get_downsample_factor",
             ],
         },
         "geometry": {"corners": corners.tolist()},

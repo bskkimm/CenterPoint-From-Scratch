@@ -113,6 +113,7 @@ the full evaluation artifacts are available.
 Project contracts and plans:
 
 - [Frozen reproduction baseline](docs/BASELINE.md)
+- [Canonical local configuration](centerpoint/config.py)
 - [Tensor and coordinate contracts](docs/CONTRACTS.md)
 - [Pinned upstream source map](docs/UPSTREAM_MAP.md)
 - [Evidence-gated next steps](docs/NEXT_STEPS.md)
@@ -141,12 +142,16 @@ See the [evidence-gated implementation plan](docs/NEXT_STEPS.md) for detailed de
 merge criteria.
 
 - [x] Establish the initial package structure
+- [x] Pin and parity-test the canonical local configuration
 - [ ] Define and lock the development environment
-- [ ] Implement point-cloud loading, augmentation, and voxelization
-- [ ] Implement the voxel encoder and sparse 3D backbone
+- [x] Implement ordered hard voxelization and mean voxel encoding
+- [ ] Implement point-cloud loading, sweeps, augmentation, and batching
+- [ ] Implement the sparse 3D backbone
 - [ ] Implement the BEV backbone and CenterHead
-- [ ] Implement target generation, losses, decoding, and NMS
-- [ ] Add unit tests and a small-data overfitting test
+- [x] Implement target generation, losses, and pre-NMS decoding
+- [ ] Implement rotated NMS and nuScenes result export
+- [x] Add deterministic unit and official-reference parity tests for current primitives
+- [ ] Add a small-data overfitting test
 - [ ] Train and evaluate detection models
 - [ ] Implement center-based tracking
 - [ ] Publish architecture notebooks and visualizations

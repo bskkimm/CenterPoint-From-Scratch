@@ -24,7 +24,7 @@ def test_fixture_is_tied_to_frozen_official_commit():
     fixture = load_fixture()
 
     assert fixture["metadata"]["official_commit"] == OFFICIAL_COMMIT
-    assert len(fixture["metadata"]["sources"]) == 7
+    assert len(fixture["metadata"]["sources"]) == 9
 
 
 def test_box_corners_match_official_golden_output():

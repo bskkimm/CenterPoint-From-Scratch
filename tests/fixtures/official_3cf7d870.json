@@ -1,4 +1,95 @@
 {
+  "config": {
+    "augmentation": {
+      "database_sampling_enabled": false,
+      "rotation_range": [-0.78539816, 0.78539816],
+      "scale_range": [0.9, 1.1],
+      "shuffle_points": true,
+      "translation_std": 0.5
+    },
+    "dataset": "NuScenesDataset",
+    "inference": {
+      "max_per_image": 500,
+      "nms": {
+        "iou_threshold": 0.2,
+        "multi_class": false,
+        "post_max_size": 83,
+        "pre_max_size": 1000,
+        "rotated": true
+      },
+      "output_stride": 8,
+      "point_cloud_min_xy": [-54, -54],
+      "post_center_range": [-61.2, -61.2, -10.0, 61.2, 61.2, 10.0],
+      "score_threshold": 0.1,
+      "voxel_size_xy": [0.075, 0.075]
+    },
+    "model": {
+      "backbone": "SpMiddleResNetFHD",
+      "backbone_downsample_factor": 8,
+      "head": {
+        "branches": {
+          "dim": [3, 2],
+          "height": [1, 2],
+          "reg": [2, 2],
+          "rot": [2, 2],
+          "vel": [2, 2]
+        },
+        "code_weights": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 1.0, 1.0],
+        "input_channels": 512,
+        "loss_weight": 0.25,
+        "shared_channels": 64,
+        "use_dcn": false
+      },
+      "neck": {
+        "downsample_filters": [128, 256],
+        "downsample_strides": [1, 2],
+        "input_channels": 256,
+        "layer_numbers": [5, 5],
+        "upsample_filters": [256, 256],
+        "upsample_strides": [1, 2]
+      },
+      "num_input_features": 5,
+      "reader": "VoxelFeatureExtractorV3"
+    },
+    "num_sweeps": 10,
+    "target": {
+      "gaussian_overlap": 0.1,
+      "max_objects": 500,
+      "min_radius": 2,
+      "output_stride": 8
+    },
+    "tasks": [
+      ["car"],
+      ["truck", "construction_vehicle"],
+      ["bus", "trailer"],
+      ["barrier"],
+      ["motorcycle", "bicycle"],
+      ["pedestrian", "traffic_cone"]
+    ],
+    "training": {
+      "amsgrad": false,
+      "division_factor": 10.0,
+      "epochs": 20,
+      "fixed_weight_decay": true,
+      "gradient_norm_type": 2,
+      "max_gradient_norm": 35,
+      "max_learning_rate": 0.001,
+      "momentums": [0.95, 0.85],
+      "moving_average": false,
+      "optimizer": "adam",
+      "samples_per_gpu": 4,
+      "schedule": "one_cycle",
+      "warmup_fraction": 0.4,
+      "weight_decay": 0.01,
+      "workers_per_gpu": 6
+    },
+    "voxel": {
+      "max_points": 10,
+      "max_voxels": [120000, 160000],
+      "point_cloud_range": [-54, -54, -5.0, 54, 54, 3.0],
+      "size": [0.075, 0.075, 0.2]
+    }
+  },
   "decoder": {
     "boxes": [
       [-9.75, -18.5, 1.5, 2.0, 4.0, 6.0, 8.0, 10.0, 0.0],
@@ -44,7 +135,9 @@
       "det3d/models/losses/centernet_loss.py",
       "det3d/datasets/pipelines/preprocess.py:AssignLabel",
       "det3d/core/bbox/box_np_ops.py:center_to_corner_box3d",
-      "det3d/models/bbox_heads/center_head.py:CenterHead.predict"
+      "det3d/models/bbox_heads/center_head.py:CenterHead.predict",
+      "configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py",
+      "det3d/utils/config_tool.py:get_downsample_factor"
     ]
   },
   "target": {

@@ -5,7 +5,7 @@ All links refer to official CenterPoint commit
 
 | Local responsibility | Official source | Status |
 | --- | --- | --- |
-| Frozen recipe | [`configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py`](https://github.com/tianweiy/CenterPoint/blob/3cf7d870537e287c99b43b68636ea392a5e6f519/configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py) | Baseline pinned; local manifest pending |
+| Frozen recipe | [`configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py`](https://github.com/tianweiy/CenterPoint/blob/3cf7d870537e287c99b43b68636ea392a5e6f519/configs/nusc/voxelnet/nusc_centerpoint_voxelnet_0075voxel_fix_bn_z.py) | Local manifest implemented and parity-tested |
 | Gaussian heatmaps and gather | [`det3d/core/utils/center_utils.py`](https://github.com/tianweiy/CenterPoint/blob/3cf7d870537e287c99b43b68636ea392a5e6f519/det3d/core/utils/center_utils.py) | Implemented and fixture-tested |
 | Ordered hard voxelization | [`det3d/ops/point_cloud/point_cloud_ops.py`](https://github.com/tianweiy/CenterPoint/blob/3cf7d870537e287c99b43b68636ea392a5e6f519/det3d/ops/point_cloud/point_cloud_ops.py) | Reference CPU implementation complete |
 | Mean voxel encoder | [`det3d/models/readers/voxel_encoder.py`](https://github.com/tianweiy/CenterPoint/blob/3cf7d870537e287c99b43b68636ea392a5e6f519/det3d/models/readers/voxel_encoder.py) | Implemented and fixture-tested |

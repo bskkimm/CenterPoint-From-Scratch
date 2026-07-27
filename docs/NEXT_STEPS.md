@@ -15,6 +15,7 @@ The repository already contains tested implementations of:
 - Six-task target assignment
 - Dense CenterHead decoding before NMS
 - Golden fixtures generated from the pinned official implementation
+- Frozen local configuration parity-tested against the pinned official config
 
 These are primitives, not yet a complete detector or reproduction.
 
@@ -23,8 +24,9 @@ These are primitives, not yet a complete detector or reproduction.
 **Deliverables**
 
 - Declare supported Python, PyTorch, CUDA, cuDNN, `spconv`, nuScenes devkit, and NumPy versions.
-- Add a machine-readable canonical nuScenes configuration without importing the official framework.
-- Validate all frozen values against the pinned config blob.
+- Maintain the machine-readable canonical nuScenes configuration without importing the official
+  framework. Initial parity coverage is complete.
+- Extend config parity whenever a newly implemented module consumes additional official fields.
 - Record dependency installation and environment inspection commands.
 
 **Merge gate**
