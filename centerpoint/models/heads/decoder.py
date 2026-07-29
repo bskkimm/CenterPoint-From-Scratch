@@ -1,10 +1,12 @@
 """Dense CenterHead prediction decoding before non-maximum suppression."""
 
 from dataclasses import dataclass
-from typing import List, Mapping, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
+
+from centerpoint.contracts import TaskPredictions
 
 
 @dataclass(frozen=True)
@@ -47,10 +49,13 @@ class CenterPointDecoder:
     @torch.no_grad()
     def __call__(
         self,
-        predictions: Mapping[str, Tensor],
+        predictions: Union[Mapping[str, Tensor], TaskPredictions],
         label_offset: int = 0,
     ) -> List[DetectionCandidates]:
         """Decode one task's NCHW prediction maps for every batch sample."""
+
+        if isinstance(predictions, TaskPredictions):
+            predictions = predictions.as_dict()
 
         required_channels = {"hm": None, "reg": 2, "height": 1, "dim": 3, "rot": 2}
         if any(name not in predictions for name in required_channels):
