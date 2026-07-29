@@ -17,6 +17,7 @@ from torch import nn
 
 
 CHECKPOINT_SCHEMA_VERSION = 1
+MODEL_STATE_SCHEMA_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,7 @@ def save_checkpoint(
     }
     payload = {
         "schema_version": CHECKPOINT_SCHEMA_VERSION,
+        "model_state_version": MODEL_STATE_SCHEMA_VERSION,
         "metadata": metadata,
         "config": config_snapshot,
         "model": model.state_dict(),
@@ -149,6 +151,7 @@ def load_checkpoint(
     payload = torch.load(Path(path), map_location=map_location)
     required = {
         "schema_version",
+        "model_state_version",
         "metadata",
         "config",
         "model",
@@ -164,6 +167,11 @@ def load_checkpoint(
         raise ValueError(
             f"unsupported checkpoint schema version {payload['schema_version']}; "
             f"expected {CHECKPOINT_SCHEMA_VERSION}"
+        )
+    if payload["model_state_version"] != MODEL_STATE_SCHEMA_VERSION:
+        raise ValueError(
+            f"unsupported model state version {payload['model_state_version']}; "
+            f"expected {MODEL_STATE_SCHEMA_VERSION}"
         )
 
     metadata = payload["metadata"]

@@ -102,3 +102,15 @@ def test_checkpoint_requires_requested_optional_state(tmp_path):
 
     with pytest.raises(ValueError, match="optimizer"):
         load_checkpoint(path, model=model, optimizer=optimizer)
+
+
+def test_checkpoint_rejects_unknown_model_state_version(tmp_path):
+    path = tmp_path / "checkpoint.pth"
+    model = nn.Linear(1, 1)
+    save_checkpoint(path, model=model, config={}, epoch=0, global_step=0)
+    payload = torch.load(path)
+    payload["model_state_version"] = 2
+    torch.save(payload, path)
+
+    with pytest.raises(ValueError, match="model state version"):
+        load_checkpoint(path, model=model)

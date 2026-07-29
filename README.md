@@ -116,6 +116,7 @@ Project contracts and plans:
 - [Canonical local configuration](centerpoint/config.py)
 - [Tensor and coordinate contracts](docs/CONTRACTS.md)
 - [Pinned upstream source map](docs/UPSTREAM_MAP.md)
+- [Model state-dict contract](docs/STATE_DICT.md)
 - [Evidence-gated next steps](docs/NEXT_STEPS.md)
 
 ## Repository Layout

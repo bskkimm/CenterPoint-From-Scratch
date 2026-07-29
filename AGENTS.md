@@ -50,6 +50,7 @@ result produced by this repository.
 - Preserve six-task nuScenes class grouping and task-local labels.
 - Preserve dense decoding without adding top-K or local-maximum filtering.
 - Keep sparse convolution, production voxelization, and rotated NMS behind explicit interfaces.
+- Preserve the module namespaces and checkpoint rules in `docs/STATE_DICT.md`.
 - Use official dataset devkits for benchmark metrics instead of reimplementing them.
 - Prefer small modules with explicit tensor shape and coordinate contracts.
 - Do not add compatibility behavior without a concrete persisted or external requirement.
