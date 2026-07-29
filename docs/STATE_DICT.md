@@ -4,6 +4,10 @@ Model-state schema version **1** fixes module namespaces before trainable backbo
 are implemented. Checkpoint container version and model-state version are separate because training
 metadata can evolve without renaming model parameters.
 
+Checkpoint schema version **2** supports trusted, single-process checkpoints saved at epoch
+boundaries. It intentionally rejects multi-process saves until rank-specific RNG, sampler, and
+data-loader state are represented and tested.
+
 ## Canonical Top-Level Names
 
 The detector must register these modules directly:

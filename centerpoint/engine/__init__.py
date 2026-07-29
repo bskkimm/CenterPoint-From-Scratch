@@ -3,6 +3,7 @@
 from .checkpoint import (
     CHECKPOINT_SCHEMA_VERSION,
     MODEL_STATE_SCHEMA_VERSION,
+    RESUME_SCOPE,
     CheckpointMetadata,
     capture_rng_state,
     config_sha256,
@@ -15,6 +16,7 @@ from .checkpoint import (
 __all__ = [
     "CHECKPOINT_SCHEMA_VERSION",
     "MODEL_STATE_SCHEMA_VERSION",
+    "RESUME_SCOPE",
     "CheckpointMetadata",
     "capture_rng_state",
     "config_sha256",

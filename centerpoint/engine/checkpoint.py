@@ -1,6 +1,7 @@
-"""Versioned, reproducible training checkpoints."""
+"""Versioned single-process, epoch-boundary training checkpoints."""
 
 import hashlib
+import inspect
 import json
 import os
 import platform
@@ -16,8 +17,9 @@ import torch
 from torch import nn
 
 
-CHECKPOINT_SCHEMA_VERSION = 1
+CHECKPOINT_SCHEMA_VERSION = 2
 MODEL_STATE_SCHEMA_VERSION = 1
+RESUME_SCOPE = "single_process_epoch_boundary"
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,7 @@ class CheckpointMetadata:
     global_step: int
     config_sha256: str
     environment: Mapping[str, Any]
+    resume_scope: str
 
 
 def config_sha256(config: Mapping[str, Any]) -> str:
@@ -95,6 +98,7 @@ def save_checkpoint(
 
     if epoch < 0 or global_step < 0:
         raise ValueError("epoch and global_step must be non-negative")
+    _require_single_process()
 
     config_snapshot = json.loads(
         json.dumps(config, sort_keys=True, allow_nan=False)
@@ -104,13 +108,14 @@ def save_checkpoint(
         "global_step": global_step,
         "config_sha256": config_sha256(config_snapshot),
         "environment": dict(environment) if environment is not None else environment_manifest(),
+        "resume_scope": RESUME_SCOPE,
     }
     payload = {
         "schema_version": CHECKPOINT_SCHEMA_VERSION,
         "model_state_version": MODEL_STATE_SCHEMA_VERSION,
         "metadata": metadata,
         "config": config_snapshot,
-        "model": model.state_dict(),
+        "model": _unwrap_model(model).state_dict(),
         "optimizer": optimizer.state_dict() if optimizer is not None else None,
         "scheduler": scheduler.state_dict() if scheduler is not None else None,
         "scaler": scaler.state_dict() if scaler is not None else None,
@@ -148,7 +153,7 @@ def load_checkpoint(
 ) -> CheckpointMetadata:
     """Validate and restore a schema-version-1 checkpoint."""
 
-    payload = torch.load(Path(path), map_location=map_location)
+    payload = _torch_load(Path(path), map_location)
     required = {
         "schema_version",
         "model_state_version",
@@ -175,13 +180,21 @@ def load_checkpoint(
         )
 
     metadata = payload["metadata"]
-    metadata_keys = {"epoch", "global_step", "config_sha256", "environment"}
+    metadata_keys = {
+        "epoch",
+        "global_step",
+        "config_sha256",
+        "environment",
+        "resume_scope",
+    }
     if not isinstance(metadata, dict) or metadata_keys.difference(metadata):
         raise ValueError("checkpoint metadata is incomplete")
     if config_sha256(payload["config"]) != metadata["config_sha256"]:
         raise ValueError("checkpoint config hash does not match its config snapshot")
+    if metadata["resume_scope"] != RESUME_SCOPE:
+        raise ValueError(f"unsupported checkpoint resume scope {metadata['resume_scope']}")
 
-    model.load_state_dict(payload["model"], strict=True)
+    _unwrap_model(model).load_state_dict(payload["model"], strict=True)
     _restore_optional_state("optimizer", optimizer, payload["optimizer"])
     _restore_optional_state("scheduler", scheduler, payload["scheduler"])
     _restore_optional_state("scaler", scaler, payload["scaler"])
@@ -193,6 +206,7 @@ def load_checkpoint(
         global_step=int(metadata["global_step"]),
         config_sha256=metadata["config_sha256"],
         environment=metadata["environment"],
+        resume_scope=metadata["resume_scope"],
     )
 
 
@@ -202,3 +216,32 @@ def _restore_optional_state(name: str, component: Optional[Any], state: Any) -> 
     if state is None:
         raise ValueError(f"checkpoint does not contain requested {name} state")
     component.load_state_dict(state)
+
+
+def _unwrap_model(model: nn.Module) -> nn.Module:
+    while isinstance(
+        model,
+        (nn.DataParallel, nn.parallel.DistributedDataParallel),
+    ):
+        model = model.module
+    return model
+
+
+def _require_single_process() -> None:
+    distributed = torch.distributed
+    if (
+        distributed.is_available()
+        and distributed.is_initialized()
+        and distributed.get_world_size() > 1
+    ):
+        raise RuntimeError(
+            "checkpoint schema 2 supports only single-process epoch-boundary resume"
+        )
+
+
+def _torch_load(path: Path, map_location: Any) -> Any:
+    kwargs = {"map_location": map_location}
+    if "weights_only" in inspect.signature(torch.load).parameters:
+        # This trusted project checkpoint includes optimizer and NumPy RNG objects.
+        kwargs["weights_only"] = False
+    return torch.load(path, **kwargs)

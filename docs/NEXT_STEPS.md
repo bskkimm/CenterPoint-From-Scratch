@@ -138,6 +138,8 @@ path should use an explicit `spconv` adapter while retaining tiny reference case
 - Adam with the pinned fixed-weight-decay behavior
 - One-cycle schedule, gradient clipping, DDP, SyncBN, seeding, and resume
 - Structured logs, configuration snapshot, environment manifest, and checkpoint hashes
+- A distributed checkpoint schema containing rank-specific RNG, sampler, and data-loader state;
+  the current schema is intentionally limited to single-process epoch boundaries
 
 **Merge gate**
 
