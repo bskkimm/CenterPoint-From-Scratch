@@ -151,8 +151,9 @@ def load_checkpoint(
     map_location: Any = "cpu",
     restore_rng: bool = False,
 ) -> CheckpointMetadata:
-    """Validate and restore a schema-version-1 checkpoint."""
+    """Validate and restore a checkpoint using the current schema."""
 
+    _require_single_process()
     payload = _torch_load(Path(path), map_location)
     required = {
         "schema_version",

@@ -144,3 +144,15 @@ def test_checkpoint_rejects_distributed_save_without_rank_state(tmp_path, monkey
             epoch=0,
             global_step=0,
         )
+
+
+def test_checkpoint_rejects_distributed_load_without_rank_state(tmp_path, monkeypatch):
+    path = tmp_path / "checkpoint.pth"
+    model = nn.Linear(1, 1)
+    save_checkpoint(path, model=model, config={}, epoch=0, global_step=0)
+    monkeypatch.setattr(torch.distributed, "is_available", lambda: True)
+    monkeypatch.setattr(torch.distributed, "is_initialized", lambda: True)
+    monkeypatch.setattr(torch.distributed, "get_world_size", lambda: 2)
+
+    with pytest.raises(RuntimeError, match="single-process"):
+        load_checkpoint(path, model=model)
