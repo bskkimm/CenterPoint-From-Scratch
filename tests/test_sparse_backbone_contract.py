@@ -10,8 +10,8 @@ class FakeSparseBackbone(SparseBackbone):
             (
                 inputs.batch_size,
                 self.output_channels,
-                inputs.spatial_shape[1] // self.output_stride,
-                inputs.spatial_shape[2] // self.output_stride,
+                (inputs.spatial_shape[1] + self.output_stride - 1) // self.output_stride,
+                (inputs.spatial_shape[2] + self.output_stride - 1) // self.output_stride,
             )
         )
 
@@ -68,3 +68,14 @@ def test_sparse_input_supports_empty_voxel_sets():
     )
 
     assert FakeSparseBackbone(output_channels=2, output_stride=8)(inputs).shape == (1, 2, 2, 3)
+
+
+def test_sparse_backbone_uses_official_ceil_geometry_for_odd_grids():
+    inputs = SparseBackboneInput(
+        features=torch.ones((1, 2)),
+        coordinates=torch.tensor([[0, 0, 14, 14]], dtype=torch.int32),
+        spatial_shape=(4, 15, 15),
+        batch_size=1,
+    )
+
+    assert FakeSparseBackbone(output_channels=2, output_stride=8)(inputs).shape == (1, 2, 2, 2)

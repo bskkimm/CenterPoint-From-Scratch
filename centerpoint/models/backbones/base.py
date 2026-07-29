@@ -58,11 +58,13 @@ class SparseBackbone(nn.Module, ABC):
         """Run the backend and validate its dense BEV contract."""
 
         bev = self.forward_sparse(inputs)
+        output_height = _ceil_divide(inputs.spatial_shape[1], self.output_stride)
+        output_width = _ceil_divide(inputs.spatial_shape[2], self.output_stride)
         expected_shape = (
             inputs.batch_size,
             self.output_channels,
-            inputs.spatial_shape[1] // self.output_stride,
-            inputs.spatial_shape[2] // self.output_stride,
+            output_height,
+            output_width,
         )
         if bev.shape != expected_shape:
             raise ValueError(
@@ -77,3 +79,7 @@ class SparseBackbone(nn.Module, ABC):
     @abstractmethod
     def forward_sparse(self, inputs: SparseBackboneInput) -> Tensor:
         """Implement sparse feature extraction and densification."""
+
+
+def _ceil_divide(value: int, divisor: int) -> int:
+    return (value + divisor - 1) // divisor
