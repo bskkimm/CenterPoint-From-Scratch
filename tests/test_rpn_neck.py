@@ -29,6 +29,29 @@ def test_rpn_matches_canonical_parameter_and_state_layout():
     assert "blocks.0.1.bias" not in state
     assert state["blocks.0.2.num_batches_tracked"].shape == ()
 
+    expected = {}
+    stage_channels = ((256, 128), (128, 256))
+    for stage, (input_channels, output_channels) in enumerate(stage_channels):
+        expected[f"blocks.{stage}.1.weight"] = (output_channels, input_channels, 3, 3)
+        for convolution_index in (4, 7, 10, 13, 16):
+            expected[f"blocks.{stage}.{convolution_index}.weight"] = (
+                output_channels,
+                output_channels,
+                3,
+                3,
+            )
+        for batch_norm_index in (2, 5, 8, 11, 14, 17):
+            for suffix in ("weight", "bias", "running_mean", "running_var"):
+                expected[f"blocks.{stage}.{batch_norm_index}.{suffix}"] = (output_channels,)
+            expected[f"blocks.{stage}.{batch_norm_index}.num_batches_tracked"] = ()
+        deblock_shape = (256, output_channels, 1, 1) if stage == 0 else (256, 256, 2, 2)
+        expected[f"deblocks.{stage}.0.weight"] = deblock_shape
+        for suffix in ("weight", "bias", "running_mean", "running_var"):
+            expected[f"deblocks.{stage}.1.{suffix}"] = (256,)
+        expected[f"deblocks.{stage}.1.num_batches_tracked"] = ()
+
+    assert {name: tuple(value.shape) for name, value in state.items()} == expected
+
 
 def test_rpn_fuses_two_branches_and_backpropagates():
     torch.manual_seed(3)

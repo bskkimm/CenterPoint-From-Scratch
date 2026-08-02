@@ -109,3 +109,67 @@ def test_class_selection_uses_configured_one_based_order():
     np.testing.assert_array_equal(selected_boxes, boxes[[0, 2]])
     assert selected_names.tolist() == ["car", "pedestrian"]
     assert class_ids.tolist() == [1, 3]
+
+
+def test_seeded_float32_augmentation_matches_pinned_helper_dtype_flow():
+    points = np.array(
+        [[1.234567, -2.345678, 0.456789, 0.2, 0.0], [-3.25, 4.75, 1.5, 0.8, 0.1]],
+        dtype=np.float32,
+    )
+    boxes = np.array(
+        [[1.125, -2.25, 0.75, 1.8, 4.2, 1.6, 3.125, -0.875, 0.45]],
+        dtype=np.float32,
+    )
+    expected_points = points.copy()
+    expected_boxes = boxes.copy()
+    reference_rng = np.random.RandomState(29)
+    if reference_rng.choice([False, True], replace=False, p=[0.5, 0.5]):
+        expected_boxes[:, 1] *= -1
+        expected_boxes[:, -1] = -expected_boxes[:, -1] + np.pi
+        expected_points[:, 1] *= -1
+        expected_boxes[:, 7] *= -1
+    if reference_rng.choice([False, True], replace=False, p=[0.5, 0.5]):
+        expected_boxes[:, 0] *= -1
+        expected_points[:, 0] *= -1
+        expected_boxes[:, -1] = -expected_boxes[:, -1] + 2 * np.pi
+        expected_boxes[:, 6] *= -1
+    angle = reference_rng.uniform(-0.7, 0.7)
+    cosine, sine = np.cos(angle), np.sin(angle)
+    for values in (expected_points[:, :3], expected_boxes[:, :3]):
+        rotation = np.array(
+            [[cosine, -sine, 0], [sine, cosine, 0], [0, 0, 1]],
+            dtype=values.dtype,
+        )
+        values[:] = values @ rotation
+    velocity = np.hstack((expected_boxes[:, 6:8], np.zeros((1, 1))))
+    velocity_rotation = np.array(
+        [[cosine, -sine, 0], [sine, cosine, 0], [0, 0, 1]],
+        dtype=velocity.dtype,
+    )
+    expected_boxes[:, 6:8] = (velocity @ velocity_rotation)[:, :2]
+    expected_boxes[:, -1] += angle
+    scale = reference_rng.uniform(0.9, 1.1)
+    expected_points[:, :3] *= scale
+    expected_boxes[:, :-1] *= scale
+    translation = np.array(
+        [
+            reference_rng.normal(0, 0.5, 1),
+            reference_rng.normal(0, 0.5, 1),
+            reference_rng.normal(0, 0.5, 1),
+        ]
+    ).T
+    expected_points[:, :3] += translation
+    expected_boxes[:, :3] += translation
+    reference_rng.shuffle(expected_points)
+
+    actual_points, actual_boxes = augment_global(
+        points,
+        boxes,
+        rotation_range=(-0.7, 0.7),
+        scale_range=(0.9, 1.1),
+        translation_std=0.5,
+        rng=np.random.RandomState(29),
+    )
+
+    np.testing.assert_array_equal(actual_points, expected_points)
+    np.testing.assert_array_equal(actual_boxes, expected_boxes)

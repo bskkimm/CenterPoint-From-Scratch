@@ -66,8 +66,8 @@ def load_point_cloud(
     if num_sweeps <= 0:
         raise ValueError("num_sweeps must be positive")
     historical_count = num_sweeps - 1
-    if len(record.sweeps) < historical_count:
-        raise ValueError("point-cloud record does not contain enough historical sweeps")
+    if len(record.sweeps) != historical_count:
+        raise ValueError("point-cloud record must contain exactly num_sweeps - 1 sweeps")
 
     current = read_lidar_file(record.lidar_path)
     point_parts = [current]

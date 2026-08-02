@@ -93,5 +93,9 @@ def test_canonical_loader_requires_nine_historical_records(tmp_path):
     write_points(path, [])
     record = PointCloudRecord(path, ())
 
-    with pytest.raises(ValueError, match="enough"):
+    with pytest.raises(ValueError, match="exactly"):
         load_point_cloud(record)
+
+    repeated = SweepRecord(path, None, 0.0)
+    with pytest.raises(ValueError, match="exactly"):
+        load_point_cloud(PointCloudRecord(path, (repeated,) * 10))

@@ -1,8 +1,13 @@
 import math
 
+import pytest
 import torch
 
-from centerpoint.models.heads import CenterPointDecoder, CenterPointPostprocessor
+from centerpoint.models.heads import (
+    CenterPointDecoder,
+    CenterPointPostprocessor,
+    DetectionCandidates,
+)
 from centerpoint.ops import rotated_nms
 
 
@@ -101,3 +106,37 @@ def test_postprocessor_preserves_empty_shapes():
     assert detections.boxes.shape == (0, 9)
     assert detections.scores.shape == (0,)
     assert detections.labels.shape == (0,)
+
+
+def test_postprocessor_validates_task_channels_and_casts_nms_inputs():
+    calls = []
+
+    def retain_all(boxes, scores, **kwargs):
+        calls.append((boxes.dtype, scores.dtype))
+        return torch.arange(boxes.shape[0], dtype=torch.int64)
+
+    class HalfDecoder:
+        def __call__(self, prediction):
+            return [
+                DetectionCandidates(
+                    boxes=torch.zeros((1, 9), dtype=torch.float16),
+                    scores=torch.ones((1,), dtype=torch.float16),
+                    labels=torch.zeros((1,), dtype=torch.int64),
+                )
+            ]
+
+    predictions = [make_prediction(len(task)) for task in TASKS]
+    postprocessor = CenterPointPostprocessor(
+        HalfDecoder(),
+        retain_all,
+        TASKS,
+        iou_threshold=0.2,
+        pre_max_size=1000,
+        post_max_size=83,
+    )
+    postprocessor(predictions)
+    assert calls == [(torch.float32, torch.float32)] * 6
+
+    predictions[0] = make_prediction(2)
+    with pytest.raises(ValueError, match="channels"):
+        make_postprocessor(nms=retain_all)(predictions)

@@ -52,7 +52,12 @@ class CenterPointPostprocessor:
         if len(predictions) != len(self.tasks):
             raise ValueError("predictions must match the configured task count")
 
-        decoded = [self.decoder(prediction) for prediction in predictions]
+        decoded = []
+        for task, prediction in zip(self.tasks, predictions):
+            heatmap = prediction.heatmap if isinstance(prediction, TaskPredictions) else prediction.get("hm")
+            if heatmap is None or heatmap.ndim != 4 or heatmap.shape[1] != len(task):
+                raise ValueError("task heatmap channels must match the configured class count")
+            decoded.append(self.decoder(prediction))
         batch_size = len(decoded[0])
         if any(len(task_results) != batch_size for task_results in decoded):
             raise ValueError("all task predictions must have the same batch size")
@@ -68,8 +73,8 @@ class CenterPointPostprocessor:
                 if candidates.boxes.ndim != 2 or candidates.boxes.shape[1] != 9:
                     raise ValueError("canonical postprocessing requires velocity boxes shaped [N, 9]")
                 keep = self.rotated_nms(
-                    _nms_boxes(candidates),
-                    candidates.scores,
+                    _nms_boxes(candidates).float(),
+                    candidates.scores.float(),
                     iou_threshold=self.iou_threshold,
                     pre_max_size=self.pre_max_size,
                     post_max_size=self.post_max_size,

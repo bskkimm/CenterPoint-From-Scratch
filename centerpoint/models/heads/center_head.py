@@ -1,7 +1,7 @@
 """Trainable six-task CenterHead from the pinned nuScenes baseline."""
 
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Mapping, Sequence, Tuple, Union
+from typing import DefaultDict, Dict, List, Mapping, MutableMapping, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor, nn
@@ -142,8 +142,11 @@ class CenterHead(nn.Module):
             if missing:
                 raise ValueError(f"prediction is missing heads: {sorted(missing)}")
 
+            heatmap = clipped_sigmoid(values["hm"])
+            if isinstance(values, MutableMapping):
+                values["hm"] = heatmap
             heatmap_loss = self.crit(
-                clipped_sigmoid(values["hm"]),
+                heatmap,
                 target.heatmap,
                 target.indices,
                 target.mask,
@@ -159,6 +162,8 @@ class CenterHead(nn.Module):
                 ],
                 dim=1,
             )
+            if isinstance(values, MutableMapping):
+                values["anno_box"] = annotation
             box_loss = self.crit_reg(
                 annotation,
                 target.mask,

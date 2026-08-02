@@ -45,13 +45,14 @@ def augment_global(
     )
     augmented_points[:, :3] = augmented_points[:, :3] @ rotation
     augmented_boxes[:, :3] = augmented_boxes[:, :3] @ rotation
-    velocity = np.column_stack(
-        (
-            augmented_boxes[:, 6:8],
-            np.zeros((augmented_boxes.shape[0],), dtype=augmented_boxes.dtype),
-        )
+    velocity = np.hstack(
+        (augmented_boxes[:, 6:8], np.zeros((augmented_boxes.shape[0], 1)))
     )
-    augmented_boxes[:, 6:8] = (velocity @ rotation)[:, :2]
+    velocity_rotation = np.array(
+        [[cosine, -sine, 0.0], [sine, cosine, 0.0], [0.0, 0.0, 1.0]],
+        dtype=velocity.dtype,
+    )
+    augmented_boxes[:, 6:8] = (velocity @ velocity_rotation)[:, :2]
     augmented_boxes[:, 8] += angle
 
     scale = float(rng.uniform(scale_range[0], scale_range[1]))
@@ -64,17 +65,17 @@ def augment_global(
         standard_deviation = tuple(float(value) for value in translation_std)
         if len(standard_deviation) != 3:
             raise ValueError("translation_std must be scalar or contain three values")
-    # The pinned helper uses the x standard deviation for z as well.
-    translation = np.array(
-        [
-            rng.normal(0, standard_deviation[0], 1)[0],
-            rng.normal(0, standard_deviation[1], 1)[0],
-            rng.normal(0, standard_deviation[0], 1)[0],
-        ],
-        dtype=augmented_points.dtype,
-    )
-    augmented_points[:, :3] += translation
-    augmented_boxes[:, :3] += translation
+    if not all(value == 0 for value in standard_deviation):
+        # The pinned helper uses the x standard deviation for z as well.
+        translation = np.array(
+            [
+                rng.normal(0, standard_deviation[0], 1),
+                rng.normal(0, standard_deviation[1], 1),
+                rng.normal(0, standard_deviation[0], 1),
+            ]
+        ).T
+        augmented_points[:, :3] += translation
+        augmented_boxes[:, :3] += translation
 
     if shuffle_points:
         rng.shuffle(augmented_points)

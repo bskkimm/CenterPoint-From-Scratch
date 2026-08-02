@@ -52,6 +52,27 @@ def test_center_head_matches_parameter_state_and_initialization_contracts():
         torch.full((1,), -2.19),
     )
 
+    expected = {
+        "shared_conv.0.weight": (64, 512, 3, 3),
+        "shared_conv.0.bias": (64,),
+    }
+    for suffix in ("weight", "bias", "running_mean", "running_var"):
+        expected[f"shared_conv.1.{suffix}"] = (64,)
+    expected["shared_conv.1.num_batches_tracked"] = ()
+    outputs = {"reg": 2, "height": 1, "dim": 3, "rot": 2, "vel": 2}
+    for task_index, class_count in enumerate((1, 2, 2, 1, 2, 2)):
+        for branch, output_channels in (*outputs.items(), ("hm", class_count)):
+            prefix = f"tasks.{task_index}.{branch}"
+            expected[f"{prefix}.0.weight"] = (64, 64, 3, 3)
+            expected[f"{prefix}.0.bias"] = (64,)
+            for suffix in ("weight", "bias", "running_mean", "running_var"):
+                expected[f"{prefix}.1.{suffix}"] = (64,)
+            expected[f"{prefix}.1.num_batches_tracked"] = ()
+            expected[f"{prefix}.3.weight"] = (output_channels, 64, 3, 3)
+            expected[f"{prefix}.3.bias"] = (output_channels,)
+
+    assert {name: tuple(value.shape) for name, value in state.items()} == expected
+
 
 def test_center_head_emits_six_ordered_tasks_and_shared_features():
     head = make_head().eval()
