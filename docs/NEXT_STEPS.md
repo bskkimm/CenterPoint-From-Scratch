@@ -14,6 +14,12 @@ The repository already contains tested implementations of:
 - Ordered hard voxelization and mean voxel feature encoding
 - Six-task target assignment
 - Dense CenterHead decoding before NMS
+- Official two-stage BEV RPN neck and six trainable CenterHead task modules
+- Integrated six-task loss composition and checkpoint-stable state layout
+- Typed voxel and task-target collation
+- Seeded global augmentation and strict BEV range filtering
+- SDK-independent current and historical LiDAR sweep loading
+- Slow rotated-BEV IoU/NMS oracle and task-wise result merging
 - Golden fixtures generated from the pinned official implementation
 - Frozen local configuration parity-tested against the pinned official config
 
@@ -185,11 +191,13 @@ tests that establish the behavior.
 
 ## Immediate Work Queue
 
-1. Environment lock and canonical local config
-2. nuScenes metadata/sweep loader with fixed-token parity
-3. Augmentation and collation
-4. Sparse backend adapter and `SpMiddleResNetFHD`
-5. BEV neck and CenterHead
+1. Environment lock for the selected CUDA, `spconv`, and NMS backends
+2. nuScenes metadata builder and fixed-token loader parity
+3. Class-balanced sampling and integrated preprocessing dataset path
+4. Official forward fixtures for the BEV neck and CenterHead
+5. Sparse backend adapter and `SpMiddleResNetFHD`
+6. Production rotated-NMS adapter and nuScenes result export
 
-Items 1-3 can progress mostly on CPU. Items 4 onward require a declared CUDA and `spconv`
-environment; full reproduction claims remain blocked on end-to-end training and official evaluation.
+Items 2-4 can progress mostly on CPU, although item 2 requires official data. Items 1 and 5 require
+a declared CUDA and `spconv` environment. Full reproduction claims remain blocked on end-to-end
+training and official evaluation.

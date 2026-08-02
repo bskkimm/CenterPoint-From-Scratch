@@ -1,7 +1,7 @@
 # CenterPoint From Scratch
 
-An educational, from-scratch reimplementation of [**CenterPoint**](https://arxiv.org/abs/2006.11275), a center-based
-3D object detector and tracker for autonomous driving.
+An educational, from-scratch reimplementation of [**CenterPoint**](https://arxiv.org/abs/2006.11275),
+focused first on the pinned one-stage nuScenes VoxelNet detector.
 
 This repository has three goals:
 
@@ -44,7 +44,7 @@ flowchart LR
     D --> E[BEV backbone and neck]
     E --> F[Center heatmap]
     E --> G[Box attribute heads]
-    F --> H[Decode top-K centers]
+    F --> H[Decode dense centers]
     G --> H
     H --> I[3D boxes]
     I --> J[Optional refinement]
@@ -94,8 +94,8 @@ reported for every experiment:
 | Dataset | Task | Metrics | Status |
 | --- | --- | --- | --- |
 | nuScenes | 3D detection | mAP, NDS | Planned |
-| nuScenes | 3D tracking | AMOTA, AMOTP | Planned |
-| Waymo Open Dataset | 3D detection | LEVEL_1/LEVEL_2 mAP and mAPH | Planned |
+| nuScenes | 3D tracking | AMOTA, AMOTP | Separate target |
+| Waymo Open Dataset | 3D detection | LEVEL_1/LEVEL_2 mAP and mAPH | Separate target |
 
 Reported numbers from the paper and reproduced numbers will be shown side by side only after
 the full evaluation artifacts are available.

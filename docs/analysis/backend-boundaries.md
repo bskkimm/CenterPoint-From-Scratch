@@ -12,6 +12,10 @@ official benchmark implementations are isolated behind explicit interfaces.
 | Rotated IoU and NMS | Slow local geometric oracle on small inputs | Version-pinned compiled operator adapter |
 | Detection metrics | Official prediction fixture | Official nuScenes devkit |
 
+The local rotated-IoU oracle uses float64 convex polygon clipping for legible mathematical
+correctness. It is not a bit-level emulation of the pinned float32 CUDA kernel at degenerate edges;
+production adapters must establish parity separately on fixed non-degenerate and boundary cases.
+
 ## Rationale
 
 The canonical sparse grid is too large for a faithful dense `Conv3d` replacement. Reimplementing a
