@@ -19,6 +19,7 @@ The repository already contains tested implementations of:
 - Typed voxel and task-target collation
 - Seeded global augmentation and strict BEV range filtering
 - SDK-independent current and historical LiDAR sweep loading
+- Class-balanced metadata resampling with replacement
 - Slow rotated-BEV IoU/NMS oracle and task-wise result merging
 - Golden fixtures generated from the pinned official implementation
 - Frozen local configuration parity-tested against the pinned official config
@@ -193,7 +194,7 @@ tests that establish the behavior.
 
 1. Environment lock for the selected CUDA, `spconv`, and NMS backends
 2. nuScenes metadata builder and fixed-token loader parity
-3. Class-balanced sampling and integrated preprocessing dataset path
+3. Integrated preprocessing dataset path
 4. Official forward fixtures for the BEV neck and CenterHead
 5. Sparse backend adapter and `SpMiddleResNetFHD`
 6. Production rotated-NMS adapter and nuScenes result export
