@@ -4,6 +4,7 @@ from torch import nn
 
 from centerpoint import NUSCENES_VOXELNET_075
 from centerpoint.contracts import TaskTargets, VoxelBatch
+from centerpoint.engine.checkpoint import load_checkpoint, save_checkpoint
 from centerpoint.models import (
     CenterHead,
     CenterPointPostprocessor,
@@ -99,6 +100,18 @@ def make_voxel_batch():
     )
 
 
+def assert_task_maps_equal(actual, expected):
+    assert len(actual) == len(expected)
+    for actual_task, expected_task in zip(actual, expected):
+        assert tuple(actual_task) == tuple(expected_task)
+        for branch in actual_task:
+            actual_map = actual_task[branch]
+            expected_map = expected_task[branch]
+            assert actual_map.shape == expected_map.shape
+            assert actual_map.dtype == expected_map.dtype
+            torch.testing.assert_allclose(actual_map, expected_map)
+
+
 def test_voxelnet_registers_frozen_top_level_modules_and_traces_features():
     model = make_model()
     predictions, bev = model.forward_features(make_voxel_batch())
@@ -106,6 +119,28 @@ def test_voxelnet_registers_frozen_top_level_modules_and_traces_features():
     assert tuple(model._modules) == ("reader", "backbone", "neck", "bbox_head")
     assert bev.shape == (2, 512, 4, 4)
     assert [task["hm"].shape[1] for task in predictions] == [1, 2, 2, 1, 2, 2]
+
+
+def test_voxelnet_state_uses_only_frozen_top_level_prefixes():
+    torch.manual_seed(41)
+
+    state = make_model().state_dict()
+
+    assert {name.split(".")[0] for name in state} == {"neck", "bbox_head"}
+    assert all(not name.startswith("postprocessor.") for name in state)
+
+
+def test_voxelnet_checkpoint_round_trip_preserves_composed_outputs(tmp_path):
+    torch.manual_seed(41)
+    model = make_model().eval()
+    expected, _ = model.forward_features(make_voxel_batch())
+    path = tmp_path / "voxelnet.pth"
+
+    save_checkpoint(path, model=model, config={}, epoch=0, global_step=0)
+    load_checkpoint(path, model=model)
+    actual, _ = model.forward_features(make_voxel_batch())
+
+    assert_task_maps_equal(actual, expected)
 
 
 def make_task_targets(batch_size=2):

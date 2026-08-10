@@ -16,6 +16,7 @@ The repository already contains tested implementations of:
 - Dense CenterHead decoding before NMS
 - Official two-stage BEV RPN neck and six trainable CenterHead task modules
 - Integrated six-task loss composition and checkpoint-stable state layout
+- Boundary-complete VoxelNet assembly with an injected sparse backend
 - Typed voxel and task-target collation
 - Seeded global augmentation and strict BEV range filtering
 - SDK-independent current and historical LiDAR sweep loading
@@ -24,7 +25,8 @@ The repository already contains tested implementations of:
 - Golden fixtures generated from the pinned official implementation
 - Frozen local configuration parity-tested against the pinned official config
 
-These are primitives, not yet a complete detector or reproduction.
+The assembly is boundary-complete, but it is not yet a production sparse detector or a reproduction:
+`SpMiddleResNetFHD`, CUDA parity, and official intermediate parity remain pending.
 
 ## 1. Lock The Environment And Configuration
 

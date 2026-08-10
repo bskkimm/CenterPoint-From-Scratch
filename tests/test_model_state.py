@@ -32,7 +32,7 @@ def make_model():
     return model
 
 
-def test_neck_and_head_round_trip_through_versioned_checkpoint(tmp_path):
+def test_neck_and_head_state_round_trip_through_versioned_checkpoint(tmp_path):
     torch.manual_seed(41)
     model = make_model()
     expected = {name: value.clone() for name, value in model.state_dict().items()}
