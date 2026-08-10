@@ -35,6 +35,11 @@ class TestSparseBackbone(SparseBackbone):
 class IncompatibleFeatureBackbone(TestSparseBackbone):
     def __init__(self):
         super().__init__(input_channels=4)
+        self.forward_sparse_called = False
+
+    def forward_sparse(self, inputs):
+        self.forward_sparse_called = True
+        raise AssertionError("VoxelNet dispatched incompatible VFE features to the sparse backend")
 
 
 class ModulePostprocessor(nn.Module):
@@ -157,8 +162,10 @@ def test_voxelnet_rejects_non_sparse_backbone():
 
 
 def test_voxelnet_rejects_vfe_channels_incompatible_with_backbone():
+    backbone = IncompatibleFeatureBackbone()
     with pytest.raises(ValueError, match="feature channels"):
-        make_model(backbone=IncompatibleFeatureBackbone()).forward_features(make_voxel_batch())
+        make_model(backbone=backbone).forward_features(make_voxel_batch())
+    assert not backbone.forward_sparse_called
 
 
 def test_voxelnet_rejects_module_postprocessor():
