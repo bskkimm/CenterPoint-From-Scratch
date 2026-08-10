@@ -76,6 +76,14 @@ The notebooks are planned as a progressive walkthrough rather than a collection 
 Each notebook should include tensor-shape annotations, small synthetic examples, visualizations,
 and links to the corresponding production code.
 
+The boundary-complete VoxelNet architecture walkthrough imports the tested package and injects a
+tiny notebook-only sparse backend. `SpMiddleResNetFHD` remains an injected, unimplemented
+production backend.
+
+```bash
+jupyter notebook notebooks/centerpoint_walkthrough.ipynb
+```
+
 ## Reproduction Plan
 
 Reproduction is more than matching the model class. The following will be controlled and
