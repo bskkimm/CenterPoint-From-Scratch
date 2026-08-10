@@ -6,7 +6,8 @@ large generated outputs.
 
 `centerpoint_walkthrough.ipynb` is a boundary-complete VoxelNet walkthrough. It injects a tiny
 notebook-only sparse backend for its small execution example because `SpMiddleResNetFHD` remains
-an injected, unimplemented production backend.
+an injected, unimplemented production backend; CUDA and `spconv` integration remain deferred and
+unimplemented.
 
 ```bash
 jupyter notebook notebooks/centerpoint_walkthrough.ipynb

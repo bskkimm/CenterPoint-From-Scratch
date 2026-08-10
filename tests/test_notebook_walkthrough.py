@@ -1,6 +1,7 @@
 import json
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -46,6 +47,25 @@ def test_walkthrough_imports_package_and_has_no_large_outputs():
 
     assert "from centerpoint" in code
     assert all(cell.get("outputs", []) == [] for cell in notebook["cells"])
+
+
+def test_walkthrough_documents_deferred_cuda_and_spconv_integration():
+    notebook = load_notebook()
+    notebook_text = "\n".join(
+        cell["source"] for cell in notebook["cells"] if cell["cell_type"] == "markdown"
+    )
+
+    for text in (
+        Path("README.md").read_text(encoding="utf-8"),
+        Path("notebooks/README.md").read_text(encoding="utf-8"),
+        notebook_text,
+    ):
+        assert "boundary-complete" in text
+        assert "SpMiddleResNetFHD" in text
+        assert "CUDA" in text
+        assert "spconv" in text
+        assert "deferred" in text
+        assert "unimplemented" in text
 
 
 def test_walkthrough_executes_from_a_clean_kernel_when_jupyter_is_available():

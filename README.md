@@ -78,7 +78,7 @@ and links to the corresponding production code.
 
 The boundary-complete VoxelNet architecture walkthrough imports the tested package and injects a
 tiny notebook-only sparse backend. `SpMiddleResNetFHD` remains an injected, unimplemented
-production backend.
+production backend; CUDA and `spconv` integration remain deferred and unimplemented.
 
 ```bash
 jupyter notebook notebooks/centerpoint_walkthrough.ipynb
