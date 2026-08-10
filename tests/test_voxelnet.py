@@ -15,6 +15,9 @@ from centerpoint.ops import rotated_nms
 
 
 class TestSparseBackbone(SparseBackbone):
+    def __init__(self):
+        super().__init__(output_channels=256)
+
     def forward_sparse(self, inputs):
         height = inputs.spatial_shape[1] // self.output_stride
         width = inputs.spatial_shape[2] // self.output_stride
@@ -23,7 +26,7 @@ class TestSparseBackbone(SparseBackbone):
         )
         if inputs.features.shape[0]:
             values = inputs.features.sum(dim=1)
-            batch, _, y, x = inputs.coordinates.unbind(dim=1)
+            batch, _, y, x = inputs.coordinates.long().unbind(dim=1)
             bev[batch, :, y // self.output_stride, x // self.output_stride] = values.unsqueeze(1)
         return bev
 

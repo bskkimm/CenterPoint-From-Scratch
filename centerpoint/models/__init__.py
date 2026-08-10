@@ -1,6 +1,7 @@
 """Voxel encoder, backbones, CenterHead, losses, and box decoding."""
 
 from .backbones import SparseBackbone, SparseBackboneInput
+from .detectors import VoxelNet
 from .heads import (
     CenterHead,
     CenterPointDecoder,
@@ -26,5 +27,6 @@ __all__ = [
     "SepHead",
     "SparseBackbone",
     "SparseBackboneInput",
+    "VoxelNet",
     "clipped_sigmoid",
 ]

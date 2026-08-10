@@ -260,6 +260,37 @@ class CenterPointConfig:
             post_center_range=self.inference.post_center_range,
         )
 
+    def make_voxelnet(self, backbone, postprocessor):
+        """Build the frozen detector around caller-provided sparse and NMS backends."""
+
+        from centerpoint.models import CenterHead, MeanVoxelFeatureEncoder, RPN, VoxelNet
+
+        return VoxelNet(
+            reader=MeanVoxelFeatureEncoder(self.model.num_input_features),
+            backbone=backbone,
+            neck=RPN(
+                layer_nums=self.model.neck.layer_numbers,
+                ds_layer_strides=self.model.neck.downsample_strides,
+                ds_num_filters=self.model.neck.downsample_filters,
+                us_layer_strides=self.model.neck.upsample_strides,
+                us_num_filters=self.model.neck.upsample_filters,
+                num_input_features=self.model.neck.input_channels,
+            ),
+            bbox_head=CenterHead(
+                in_channels=self.model.head.input_channels,
+                tasks=self.tasks,
+                common_heads={
+                    branch.name: (branch.output_channels, branch.num_convolutions)
+                    for branch in self.model.head.branches
+                },
+                share_conv_channel=self.model.head.shared_channels,
+                loss_weight=self.model.head.loss_weight,
+                code_weights=self.model.head.code_weights,
+            ),
+            postprocessor=postprocessor,
+            spatial_shape=tuple(reversed(self.voxel.grid_size)),
+        )
+
 
 NUSCENES_VOXELNET_075 = CenterPointConfig(
     official_commit=OFFICIAL_COMMIT,
