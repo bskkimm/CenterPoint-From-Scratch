@@ -13,6 +13,7 @@ dist/
 # Environments and editors
 .venv/
 venv/
+.worktrees/
 .env
 .idea/
 .vscode/
