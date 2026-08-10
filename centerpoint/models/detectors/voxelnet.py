@@ -6,7 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from centerpoint.contracts import TaskTargets, VoxelBatch
-from centerpoint.models.backbones import SparseBackboneInput
+from centerpoint.models.backbones import SparseBackbone, SparseBackboneInput
 from centerpoint.models.heads import Detections
 
 
@@ -16,7 +16,7 @@ class VoxelNet(nn.Module):
     def __init__(
         self,
         reader: nn.Module,
-        backbone: nn.Module,
+        backbone: SparseBackbone,
         neck: nn.Module,
         bbox_head: nn.Module,
         postprocessor: Callable,
@@ -26,6 +26,10 @@ class VoxelNet(nn.Module):
         spatial_shape = tuple(spatial_shape)
         if len(spatial_shape) != 3 or any(size <= 0 for size in spatial_shape):
             raise ValueError("spatial_shape must contain positive z, y, x sizes")
+        if not isinstance(backbone, SparseBackbone):
+            raise TypeError("backbone must implement SparseBackbone")
+        if isinstance(postprocessor, nn.Module):
+            raise TypeError("postprocessor must be a non-module callable")
         if not callable(postprocessor):
             raise ValueError("postprocessor must be callable")
 
@@ -39,6 +43,11 @@ class VoxelNet(nn.Module):
 
     def _sparse_inputs(self, voxels: VoxelBatch) -> SparseBackboneInput:
         features = self.reader(voxels.voxels, voxels.num_points)
+        if (
+            features.ndim != 2
+            or features.shape[1] != self.backbone.input_channels
+        ):
+            raise ValueError("VFE feature channels must match backbone input_channels")
         return SparseBackboneInput(
             features, voxels.coordinates, self._spatial_shape, voxels.batch_size
         )

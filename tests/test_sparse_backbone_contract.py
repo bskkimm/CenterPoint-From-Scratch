@@ -31,7 +31,9 @@ def make_inputs():
 
 
 def test_sparse_backbone_validates_dense_bev_output():
-    output = FakeSparseBackbone(output_channels=4, output_stride=8)(make_inputs())
+    output = FakeSparseBackbone(input_channels=2, output_channels=4, output_stride=8)(
+        make_inputs()
+    )
 
     assert output.shape == (2, 4, 2, 3)
     assert output.dtype == torch.float32
@@ -56,7 +58,7 @@ def test_sparse_input_rejects_xyz_or_out_of_bounds_coordinates():
 
 def test_sparse_backbone_rejects_backend_shape_drift():
     with pytest.raises(ValueError, match="dense BEV shape"):
-        WrongShapeBackbone(output_channels=4, output_stride=8)(make_inputs())
+        WrongShapeBackbone(input_channels=2, output_channels=4, output_stride=8)(make_inputs())
 
 
 def test_sparse_input_supports_empty_voxel_sets():
@@ -67,7 +69,10 @@ def test_sparse_input_supports_empty_voxel_sets():
         batch_size=1,
     )
 
-    assert FakeSparseBackbone(output_channels=2, output_stride=8)(inputs).shape == (1, 2, 2, 3)
+    assert (
+        FakeSparseBackbone(input_channels=5, output_channels=2, output_stride=8)(inputs).shape
+        == (1, 2, 2, 3)
+    )
 
 
 def test_sparse_backbone_uses_official_ceil_geometry_for_odd_grids():
@@ -78,4 +83,7 @@ def test_sparse_backbone_uses_official_ceil_geometry_for_odd_grids():
         batch_size=1,
     )
 
-    assert FakeSparseBackbone(output_channels=2, output_stride=8)(inputs).shape == (1, 2, 2, 2)
+    assert (
+        FakeSparseBackbone(input_channels=2, output_channels=2, output_stride=8)(inputs).shape
+        == (1, 2, 2, 2)
+    )

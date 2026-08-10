@@ -1,5 +1,6 @@
 import pytest
 import torch
+from torch import nn
 
 from centerpoint import NUSCENES_VOXELNET_075
 from centerpoint.contracts import TaskTargets, VoxelBatch
@@ -15,8 +16,8 @@ from centerpoint.ops import rotated_nms
 
 
 class TestSparseBackbone(SparseBackbone):
-    def __init__(self):
-        super().__init__(output_channels=256)
+    def __init__(self, input_channels=5):
+        super().__init__(input_channels=input_channels, output_channels=256)
 
     def forward_sparse(self, inputs):
         height = inputs.spatial_shape[1] // self.output_stride
@@ -31,11 +32,21 @@ class TestSparseBackbone(SparseBackbone):
         return bev
 
 
-def make_model():
+class IncompatibleFeatureBackbone(TestSparseBackbone):
+    def __init__(self):
+        super().__init__(input_channels=4)
+
+
+class ModulePostprocessor(nn.Module):
+    def forward(self, predictions):
+        return predictions
+
+
+def make_model(*, backbone=None, postprocessor=None):
     config = NUSCENES_VOXELNET_075
     return VoxelNet(
         reader=MeanVoxelFeatureEncoder(config.model.num_input_features),
-        backbone=TestSparseBackbone(),
+        backbone=TestSparseBackbone() if backbone is None else backbone,
         neck=RPN(
             layer_nums=config.model.neck.layer_numbers,
             ds_layer_strides=config.model.neck.downsample_strides,
@@ -55,13 +66,17 @@ def make_model():
             loss_weight=config.model.head.loss_weight,
             code_weights=config.model.head.code_weights,
         ),
-        postprocessor=CenterPointPostprocessor(
-            config.make_decoder(),
-            rotated_nms,
-            config.tasks,
-            iou_threshold=config.inference.nms.iou_threshold,
-            pre_max_size=config.inference.nms.pre_max_size,
-            post_max_size=config.inference.nms.post_max_size,
+        postprocessor=(
+            CenterPointPostprocessor(
+                config.make_decoder(),
+                rotated_nms,
+                config.tasks,
+                iou_threshold=config.inference.nms.iou_threshold,
+                pre_max_size=config.inference.nms.pre_max_size,
+                post_max_size=config.inference.nms.post_max_size,
+            )
+            if postprocessor is None
+            else postprocessor
         ),
         spatial_shape=(4, 32, 32),
     )
@@ -134,6 +149,21 @@ def test_voxelnet_rejects_incompatible_targets_and_feature_channels():
     )
     with pytest.raises(ValueError, match="features"):
         make_model().forward_features(incompatible_features)
+
+
+def test_voxelnet_rejects_non_sparse_backbone():
+    with pytest.raises(TypeError, match="SparseBackbone"):
+        make_model(backbone=nn.Identity())
+
+
+def test_voxelnet_rejects_vfe_channels_incompatible_with_backbone():
+    with pytest.raises(ValueError, match="feature channels"):
+        make_model(backbone=IncompatibleFeatureBackbone()).forward_features(make_voxel_batch())
+
+
+def test_voxelnet_rejects_module_postprocessor():
+    with pytest.raises(TypeError, match="postprocessor"):
+        make_model(postprocessor=ModulePostprocessor())
 
 
 def test_voxelnet_supports_empty_voxel_batches():

@@ -47,16 +47,23 @@ class SparseBackbone(nn.Module, ABC):
     Subclasses own sparse-kernel integration but must emit a dense NCHW BEV tensor.
     """
 
-    def __init__(self, output_channels: int = 256, output_stride: int = 8) -> None:
+    def __init__(
+        self, input_channels: int, output_channels: int = 256, output_stride: int = 8
+    ) -> None:
         super().__init__()
-        if output_channels <= 0 or output_stride <= 0:
-            raise ValueError("output channels and stride must be positive")
+        if input_channels <= 0 or output_channels <= 0 or output_stride <= 0:
+            raise ValueError("input/output channels and stride must be positive")
+        self.input_channels = input_channels
         self.output_channels = output_channels
         self.output_stride = output_stride
 
     def forward(self, inputs: SparseBackboneInput) -> Tensor:
         """Run the backend and validate its dense BEV contract."""
 
+        if inputs.features.shape[1] != self.input_channels:
+            raise ValueError(
+                "sparse backbone input feature channels must match its configured input_channels"
+            )
         bev = self.forward_sparse(inputs)
         output_height = _ceil_divide(inputs.spatial_shape[1], self.output_stride)
         output_width = _ceil_divide(inputs.spatial_shape[2], self.output_stride)
