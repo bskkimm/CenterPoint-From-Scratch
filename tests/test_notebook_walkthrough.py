@@ -68,9 +68,14 @@ def test_walkthrough_documents_deferred_cuda_and_spconv_integration():
         assert "unimplemented" in text
 
 
-def test_walkthrough_executes_from_a_clean_kernel_when_jupyter_is_available():
+def test_walkthrough_executes_from_a_clean_kernel_when_jupyter_is_available(tmp_path):
     if shutil.which("jupyter") is None:
         pytest.skip("jupyter is not available on PATH")
+
+    tracked_notebook = Path(NOTEBOOK_PATH)
+    original_contents = tracked_notebook.read_bytes()
+    execution_notebook = tmp_path / tracked_notebook.name
+    execution_notebook.write_bytes(original_contents)
 
     try:
         subprocess.run(
@@ -80,14 +85,14 @@ def test_walkthrough_executes_from_a_clean_kernel_when_jupyter_is_available():
                 "--to",
                 "notebook",
                 "--execute",
-                "--inplace",
+                f"--output={execution_notebook.name}",
                 "--ExecutePreprocessor.timeout=120",
-                NOTEBOOK_PATH,
+                str(execution_notebook),
             ],
             check=True,
         )
 
-        notebook = load_notebook()
+        notebook = load_notebook(execution_notebook)
         output_text = "\n".join(
             output.get("text", "")
             for cell in notebook["cells"]
@@ -97,11 +102,4 @@ def test_walkthrough_executes_from_a_clean_kernel_when_jupyter_is_available():
         assert "Tensor ledger" in output_text
         assert "gradient" in output_text
     finally:
-        notebook = load_notebook()
-        for cell in notebook["cells"]:
-            if cell["cell_type"] == "code":
-                cell["execution_count"] = None
-                cell["outputs"] = []
-        with open(NOTEBOOK_PATH, "w", encoding="utf-8") as notebook_file:
-            json.dump(notebook, notebook_file, indent=1)
-            notebook_file.write("\n")
+        assert tracked_notebook.read_bytes() == original_contents

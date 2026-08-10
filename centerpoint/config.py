@@ -263,7 +263,26 @@ class CenterPointConfig:
     def make_voxelnet(self, backbone, postprocessor):
         """Build the frozen detector around caller-provided sparse and NMS backends."""
 
-        from centerpoint.models import CenterHead, MeanVoxelFeatureEncoder, RPN, VoxelNet
+        from centerpoint.models import (
+            CenterHead,
+            MeanVoxelFeatureEncoder,
+            RPN,
+            SparseBackbone,
+            VoxelNet,
+        )
+
+        if not isinstance(backbone, SparseBackbone):
+            raise TypeError("backbone must implement SparseBackbone")
+        expected_contract = {
+            "input_channels": self.model.num_input_features,
+            "output_channels": self.model.neck.input_channels,
+            "output_stride": self.model.backbone_downsample_factor,
+        }
+        for field, expected in expected_contract.items():
+            if getattr(backbone, field) != expected:
+                raise ValueError(
+                    f"backbone {field} must be {expected} for the frozen VoxelNet recipe"
+                )
 
         return VoxelNet(
             reader=MeanVoxelFeatureEncoder(self.model.num_input_features),

@@ -1,0 +1,48 @@
+{
+  "bbox_head": {
+    "shared": {
+      "0.weight": [64, 512, 3, 3],
+      "0.bias": [64],
+      "1.weight": [64],
+      "1.bias": [64],
+      "1.running_mean": [64],
+      "1.running_var": [64],
+      "1.num_batches_tracked": []
+    },
+    "heatmap_channels": [1, 2, 2, 1, 2, 2],
+    "regression_channels": {
+      "reg": 2,
+      "height": 1,
+      "dim": 3,
+      "rot": 2,
+      "vel": 2
+    },
+    "task_stem": {
+      "0.weight": [64, 64, 3, 3],
+      "0.bias": [64],
+      "1.weight": [64],
+      "1.bias": [64],
+      "1.running_mean": [64],
+      "1.running_var": [64],
+      "1.num_batches_tracked": []
+    }
+  },
+  "neck": {
+    "blocks": [
+      {
+        "channels": [256, 128],
+        "convolution_indices": [1, 4, 7, 10, 13, 16],
+        "batch_norm_indices": [2, 5, 8, 11, 14, 17]
+      },
+      {
+        "channels": [128, 256],
+        "convolution_indices": [1, 4, 7, 10, 13, 16],
+        "batch_norm_indices": [2, 5, 8, 11, 14, 17]
+      }
+    ],
+    "deblocks": [
+      {"weight": [256, 128, 1, 1], "batch_norm": [256]},
+      {"weight": [256, 256, 2, 2], "batch_norm": [256]}
+    ]
+  }
+}

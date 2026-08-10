@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 import torch
 from torch import nn
@@ -16,9 +19,13 @@ from centerpoint.models import (
 from centerpoint.ops import rotated_nms
 
 
-class TestSparseBackbone(SparseBackbone):
-    def __init__(self, input_channels=5):
-        super().__init__(input_channels=input_channels, output_channels=256)
+class TinySparseBackbone(SparseBackbone):
+    def __init__(self, input_channels=5, output_channels=256, output_stride=8):
+        super().__init__(
+            input_channels=input_channels,
+            output_channels=output_channels,
+            output_stride=output_stride,
+        )
 
     def forward_sparse(self, inputs):
         height = inputs.spatial_shape[1] // self.output_stride
@@ -33,7 +40,7 @@ class TestSparseBackbone(SparseBackbone):
         return bev
 
 
-class IncompatibleFeatureBackbone(TestSparseBackbone):
+class IncompatibleFeatureBackbone(TinySparseBackbone):
     def __init__(self):
         super().__init__(input_channels=4)
         self.forward_sparse_called = False
@@ -52,7 +59,7 @@ def make_model(*, backbone=None, postprocessor=None):
     config = NUSCENES_VOXELNET_075
     return VoxelNet(
         reader=MeanVoxelFeatureEncoder(config.model.num_input_features),
-        backbone=TestSparseBackbone() if backbone is None else backbone,
+        backbone=TinySparseBackbone() if backbone is None else backbone,
         neck=RPN(
             layer_nums=config.model.neck.layer_numbers,
             ds_layer_strides=config.model.neck.downsample_strides,
@@ -110,6 +117,94 @@ def assert_task_maps_equal(actual, expected):
             assert actual_map.shape == expected_map.shape
             assert actual_map.dtype == expected_map.dtype
             torch.testing.assert_allclose(actual_map, expected_map)
+
+
+def test_canonical_factory_rejects_incompatible_sparse_backbone_contracts():
+    config = NUSCENES_VOXELNET_075
+
+    for field, value in (
+        ("input_channels", 4),
+        ("output_channels", 128),
+        ("output_stride", 4),
+    ):
+        with pytest.raises(ValueError, match=field):
+            config.make_voxelnet(
+                TinySparseBackbone(**{field: value}), postprocessor=lambda predictions: predictions
+            )
+
+
+def test_canonical_factory_uses_frozen_sparse_spatial_shape():
+    model = NUSCENES_VOXELNET_075.make_voxelnet(
+        TinySparseBackbone(), postprocessor=lambda predictions: predictions
+    )
+
+    assert tuple(model._modules) == ("reader", "backbone", "neck", "bbox_head")
+    assert model._spatial_shape == (40, 1440, 1440)
+
+
+def test_canonical_factory_matches_complete_voxelnet_state_shape_snapshot():
+    torch.manual_seed(41)
+    model = NUSCENES_VOXELNET_075.make_voxelnet(
+        TinySparseBackbone(), postprocessor=lambda predictions: predictions
+    )
+    expected_path = Path("tests/fixtures/voxelnet_075_state_shapes.json")
+    expected = expand_state_shape_snapshot(
+        json.loads(expected_path.read_text(encoding="utf-8"))
+    )
+
+    assert {name: list(tensor.shape) for name, tensor in model.state_dict().items()} == expected
+
+
+def expand_state_shape_snapshot(snapshot):
+    expected = {}
+    head = snapshot["bbox_head"]
+    expected.update({f"bbox_head.shared_conv.{name}": shape for name, shape in head["shared"].items()})
+    for task_index, heatmap_channels in enumerate(head["heatmap_channels"]):
+        for branch, output_channels in {
+            **head["regression_channels"],
+            "hm": heatmap_channels,
+        }.items():
+            prefix = f"bbox_head.tasks.{task_index}.{branch}"
+            expected.update(
+                {f"{prefix}.{name}": shape for name, shape in head["task_stem"].items()}
+            )
+            expected[f"{prefix}.3.weight"] = [output_channels, 64, 3, 3]
+            expected[f"{prefix}.3.bias"] = [output_channels]
+
+    for block_index, block in enumerate(snapshot["neck"]["blocks"]):
+        input_channels, output_channels = block["channels"]
+        for convolution_index in block["convolution_indices"]:
+            expected[f"neck.blocks.{block_index}.{convolution_index}.weight"] = [
+                output_channels,
+                input_channels,
+                3,
+                3,
+            ]
+            input_channels = output_channels
+        for batch_norm_index in block["batch_norm_indices"]:
+            prefix = f"neck.blocks.{block_index}.{batch_norm_index}"
+            expected.update(
+                {
+                    f"{prefix}.weight": [output_channels],
+                    f"{prefix}.bias": [output_channels],
+                    f"{prefix}.running_mean": [output_channels],
+                    f"{prefix}.running_var": [output_channels],
+                    f"{prefix}.num_batches_tracked": [],
+                }
+            )
+    for deblock_index, deblock in enumerate(snapshot["neck"]["deblocks"]):
+        expected[f"neck.deblocks.{deblock_index}.0.weight"] = deblock["weight"]
+        prefix = f"neck.deblocks.{deblock_index}.1"
+        expected.update(
+            {
+                f"{prefix}.weight": deblock["batch_norm"],
+                f"{prefix}.bias": deblock["batch_norm"],
+                f"{prefix}.running_mean": deblock["batch_norm"],
+                f"{prefix}.running_var": deblock["batch_norm"],
+                f"{prefix}.num_batches_tracked": [],
+            }
+        )
+    return expected
 
 
 def test_voxelnet_registers_frozen_top_level_modules_and_traces_features():
