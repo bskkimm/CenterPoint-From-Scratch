@@ -159,20 +159,31 @@ corresponding pipelines exist and can be verified end to end.
 See the [evidence-gated implementation plan](docs/NEXT_STEPS.md) for detailed deliverables and
 merge criteria.
 
+Items are checked only when tested code exists, never when the merge gate behind them is still
+open. Gates that need official data, a GPU, or `spconv` are therefore listed separately.
+
 - [x] Establish the initial package structure
 - [x] Pin and parity-test the canonical local configuration
-- [ ] Define and lock the development environment
+- [x] Declare the package's runtime dependencies
+- [ ] Lock the CUDA, cuDNN, `spconv`, and nuScenes devkit environment
 - [x] Implement ordered hard voxelization and mean voxel encoding
-- [ ] Implement point-cloud loading, sweeps, augmentation, and batching
+- [x] Implement sweep loading, global augmentation, class-balanced sampling, and batching
+- [ ] Match nuScenes metadata and preprocessing on fixed sample tokens
 - [ ] Implement the sparse 3D backbone
-- [ ] Implement the BEV backbone and CenterHead
+- [x] Implement the BEV RPN neck and the six-task CenterHead
+- [ ] Verify the neck and CenterHead against official forward fixtures
 - [x] Implement target generation, losses, and pre-NMS decoding
-- [ ] Implement rotated NMS and nuScenes result export
+- [x] Assemble the boundary-complete VoxelNet around an injected sparse backend
+- [x] Add the versioned single-process checkpoint schema
+- [x] Implement the rotated-NMS oracle and task-wise result merging
+- [ ] Implement the production rotated-NMS adapter and nuScenes result export
 - [x] Add deterministic unit and official-reference parity tests for current primitives
+- [ ] Implement the training engine
 - [ ] Add a small-data overfitting test
 - [ ] Train and evaluate detection models
 - [ ] Implement center-based tracking
-- [ ] Publish architecture notebooks and visualizations
+- [x] Publish the boundary-complete VoxelNet architecture walkthrough
+- [ ] Publish the full progressive notebook series and visualizations
 - [ ] Publish checkpoints, logs, configurations, and reproduction tables
 
 ## References
