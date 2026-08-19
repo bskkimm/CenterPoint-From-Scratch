@@ -1,4 +1,4 @@
-"""Geometry, tensor, visualization, and reproducibility utilities."""
+"""Box geometry, Gaussian heatmap, and tensor-indexing utilities."""
 
 from .geometry import (
     INTERNAL_BOX_FIELDS,

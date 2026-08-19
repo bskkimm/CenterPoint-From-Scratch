@@ -1,1 +1,1 @@
-"""Detection and tracking evaluation adapters."""
+"""Official devkit detection evaluation adapters."""
