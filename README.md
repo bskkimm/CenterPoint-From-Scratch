@@ -142,8 +142,17 @@ Project contracts and plans:
 `-- README.md
 ```
 
-The installation and execution instructions will be added when the first runnable pipeline is
-available, so that all documented commands can be verified before publication.
+### Verified Commands
+
+Only commands that have been executed in the declared environment are documented. The CPU test
+suite runs from a plain checkout, without nuScenes data, a GPU, or `spconv`:
+
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q
+```
+
+Installation, training, evaluation, and data-preparation commands will be added once the
+corresponding pipelines exist and can be verified end to end.
 
 ## Roadmap
 
