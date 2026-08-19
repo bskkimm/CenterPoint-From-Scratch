@@ -88,3 +88,35 @@ def test_decoder_validates_head_shapes():
 
     with pytest.raises(ValueError, match="reg"):
         CenterPointDecoder((1, 1, 1), (0, 0, 0, 1, 1, 1), 1)(predictions)
+
+
+def test_decoder_maps_row_major_cells_to_metric_centers_on_a_non_square_grid():
+    height, width = 2, 3
+    zeros = torch.zeros((1, 1, height, width))
+    predictions = {
+        "hm": zeros.clone(),
+        "reg": torch.zeros((1, 2, height, width)),
+        "height": zeros.clone(),
+        "dim": torch.zeros((1, 3, height, width)),
+        "rot": torch.cat((zeros.clone(), torch.ones_like(zeros)), dim=1),
+    }
+
+    # Distinct x/y voxel sizes make a transposed grid observable in both coordinates.
+    result = CenterPointDecoder(
+        voxel_size=(1.0, 2.0, 0.2),
+        point_cloud_range=(0.0, 0.0, -5.0, 10.0, 20.0, 3.0),
+        output_stride=1,
+    )(predictions)[0]
+
+    expected_centers = torch.tensor(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [2.0, 0.0],
+            [0.0, 2.0],
+            [1.0, 2.0],
+            [2.0, 2.0],
+        ]
+    )
+    assert result.boxes.shape == (height * width, 7)
+    torch.testing.assert_allclose(result.boxes[:, :2], expected_centers)
