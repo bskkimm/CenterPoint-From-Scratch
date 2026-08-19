@@ -8,6 +8,13 @@ version = "0.0.0"
 description = "An educational from-scratch reimplementation of CenterPoint."
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    # Floors are the versions the CPU suite is verified against in this repository, not a
+    # compatibility claim for older releases. The full environment lock (CUDA, cuDNN, spconv,
+    # and the nuScenes devkit) remains section 1 of docs/NEXT_STEPS.md.
+    "numpy>=1.26.4",
+    "torch>=1.8.0a0",
+]
 
 [tool.setuptools.packages.find]
 include = ["centerpoint*"]
