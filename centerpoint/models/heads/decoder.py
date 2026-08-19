@@ -83,12 +83,14 @@ class CenterPointDecoder:
         rotation = predictions["rot"].permute(0, 2, 3, 1).contiguous()
         yaw = torch.atan2(rotation[..., 0:1], rotation[..., 1:2])
 
-        grid_y, grid_x = torch.meshgrid(
-            torch.arange(height, dtype=offsets.dtype, device=offsets.device),
-            torch.arange(width, dtype=offsets.dtype, device=offsets.device),
+        # Broadcast the cell indices directly instead of calling torch.meshgrid, whose
+        # `indexing` default is version dependent and unavailable on the pinned torch.
+        grid_y = torch.arange(height, dtype=offsets.dtype, device=offsets.device).view(
+            1, height, 1, 1
         )
-        grid_x = grid_x.reshape(1, height, width, 1)
-        grid_y = grid_y.reshape(1, height, width, 1)
+        grid_x = torch.arange(width, dtype=offsets.dtype, device=offsets.device).view(
+            1, 1, width, 1
+        )
         center_x = (
             (grid_x + offsets[..., 0:1])
             * self.output_stride
