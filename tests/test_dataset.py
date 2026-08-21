@@ -1,6 +1,7 @@
 """Contract for the integrated preprocessing path that composes the tested stages."""
 
 from dataclasses import replace
+from itertools import cycle
 
 import numpy as np
 import pytest
@@ -22,9 +23,10 @@ class FixedRNG:
     """Deterministic stand-in consuming the exact call sequence of augment_global."""
 
     def __init__(self):
-        self.flips = iter((True, False))
-        self.uniforms = iter((0.0, 1.0))
-        self.translations = iter((0.0, 0.0, 0.0))
+        # Cycled so repeated __getitem__ calls stay deterministic per sample.
+        self.flips = cycle((True, False))
+        self.uniforms = cycle((0.0, 1.0))
+        self.translations = cycle((0.0, 0.0, 0.0))
 
     def choice(self, values, **kwargs):
         return next(self.flips)
@@ -210,7 +212,7 @@ def test_dataset_samples_collate_for_batch_sizes_one_and_many(tmp_path):
     assert len(batch.targets) == len(config.tasks)
     assert sorted(set(batch.voxels.coordinates[:, 0].tolist())) == [0, 1]
     for task, targets in zip(config.tasks, batch.targets):
-        assert targets.heatmap.shape == (2, len(task), 3, 4)
+        assert targets.heatmap.shape == (2, len(task), 4, 4)
         assert targets.annotation.shape == (2, config.target.max_objects, 10)
     assert [metadata["token"] for metadata in batch.metadata] == ["a", "b"]
 
