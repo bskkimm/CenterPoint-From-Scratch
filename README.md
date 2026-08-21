@@ -168,6 +168,7 @@ open. Gates that need official data, a GPU, or `spconv` are therefore listed sep
 - [ ] Lock the CUDA, cuDNN, `spconv`, and nuScenes devkit environment
 - [x] Implement ordered hard voxelization and mean voxel encoding
 - [x] Implement sweep loading, global augmentation, class-balanced sampling, and batching
+- [x] Compose the integrated preprocessing dataset path
 - [ ] Match nuScenes metadata and preprocessing on fixed sample tokens
 - [ ] Implement the sparse 3D backbone
 - [x] Implement the BEV RPN neck and the six-task CenterHead
